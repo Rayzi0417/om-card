@@ -3,32 +3,16 @@ import { NextRequest } from 'next/server';
 import { streamText } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
-import { ProxyAgent, fetch as undiciFetch } from 'undici';
 import { checkRateLimit, CHAT_RATE_LIMIT, getClientIP } from '@/lib/utils/rate-limit';
 import { getCounselorPrompt } from '@/lib/prompts/counselor';
 import type { AIProvider, ChatMessage } from '@/types';
 
-// 创建带代理的 fetch
-const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
-const proxyAgent = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
-
-const customFetch: typeof globalThis.fetch = async (input, init) => {
-  if (proxyAgent) {
-    return undiciFetch(input as string, {
-      ...init,
-      dispatcher: proxyAgent,
-    } as Parameters<typeof undiciFetch>[1]) as unknown as Response;
-  }
-  return globalThis.fetch(input, init);
-};
-
-// Google AI (通过代理)
+// Google AI
 const google = createGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-  fetch: customFetch,
 });
 
-// 豆包 AI (直连)
+// 豆包 AI
 const doubao = createOpenAI({
   apiKey: process.env.ARK_API_KEY || '',
   baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
@@ -50,7 +34,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const messages: ChatMessage[] = body.messages || [];
     const imageContext: string | undefined = body.imageContext;
-    const provider: AIProvider = body.provider || 'google';
+    const provider: AIProvider = body.provider || 'doubao';
 
     if (messages.length === 0) {
       return new Response(
@@ -61,10 +45,10 @@ export async function POST(request: NextRequest) {
 
     const systemPrompt = getCounselorPrompt(imageContext);
 
-    // 选择模型
-    const model = provider === 'doubao' 
-      ? doubao.chat('doubao-seed-1-8-251228')
-      : google('gemini-2.0-flash');
+    // 选择模型（默认豆包）
+    const model = provider === 'google' 
+      ? google('gemini-2.0-flash')
+      : doubao.chat('doubao-seed-1-8-251228');
 
     const result = await streamText({
       model,
