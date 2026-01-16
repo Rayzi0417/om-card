@@ -1,26 +1,222 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
+@custom-variant dark (&:is(.dark *));
+
+/* Om Card 禅意主题色彩系统 */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* 深夜禅意色彩 */
+  --om-bg-primary: #0f0f23;
+  --om-bg-secondary: #1a1a2e;
+  --om-bg-card: #16213e;
+  --om-accent: #edf2f4;
+  --om-accent-gold: #c9a959;
+  --om-accent-soft: #8b8b9e;
+  --om-glow: rgba(201, 169, 89, 0.3);
+  
+  /* Shadcn 主题覆盖 - 深色模式 */
+  --radius: 0.75rem;
+  --background: #0f0f23;
+  --foreground: #edf2f4;
+  --card: #16213e;
+  --card-foreground: #edf2f4;
+  --popover: #1a1a2e;
+  --popover-foreground: #edf2f4;
+  --primary: #c9a959;
+  --primary-foreground: #0f0f23;
+  --secondary: #1a1a2e;
+  --secondary-foreground: #edf2f4;
+  --muted: #1a1a2e;
+  --muted-foreground: #8b8b9e;
+  --accent: #1a1a2e;
+  --accent-foreground: #c9a959;
+  --destructive: #ef4444;
+  --border: rgba(237, 242, 244, 0.1);
+  --input: rgba(237, 242, 244, 0.1);
+  --ring: #c9a959;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-noto);
+  --font-serif: var(--font-cormorant);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  
+  html {
+    /* 禁止 iOS Safari 的橡皮筋效果 */
+    overscroll-behavior: none;
+  }
+  
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-noto), 'Noto Serif SC', serif;
+    min-height: 100dvh;
+    /* 移动端优化 */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* 呼吸动画 */
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px var(--om-glow), 0 0 40px var(--om-glow);
+  }
+  50% {
+    box-shadow: 0 0 40px var(--om-glow), 0 0 80px var(--om-glow);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cardReveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) rotateY(90deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05) rotateY(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotateY(0deg);
+  }
+}
+
+.animate-breathe {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 4s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-card-reveal {
+  animation: cardReveal 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* 渐变背景 */
+.om-gradient-bg {
+  background: linear-gradient(
+    180deg,
+    var(--om-bg-primary) 0%,
+    var(--om-bg-secondary) 50%,
+    var(--om-bg-primary) 100%
+  );
+}
+
+/* 星空背景点缀 */
+.om-stars {
+  background-image: 
+    radial-gradient(2px 2px at 20px 30px, rgba(255,255,255,0.3), transparent),
+    radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.2), transparent),
+    radial-gradient(1px 1px at 90px 40px, rgba(255,255,255,0.3), transparent),
+    radial-gradient(2px 2px at 130px 80px, rgba(255,255,255,0.2), transparent),
+    radial-gradient(1px 1px at 160px 120px, rgba(255,255,255,0.4), transparent);
+  background-repeat: repeat;
+  background-size: 200px 150px;
+}
+
+/* 卡牌样式 */
+.om-card {
+  background: linear-gradient(145deg, #1e1e3f 0%, #16213e 100%);
+  border: 1px solid rgba(201, 169, 89, 0.2);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.3),
+    0 2px 4px -1px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* 对话气泡 */
+.chat-bubble-user {
+  background: linear-gradient(135deg, var(--om-accent-gold) 0%, #b8942d 100%);
+  color: var(--om-bg-primary);
+}
+
+.chat-bubble-assistant {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(201, 169, 89, 0.3);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 169, 89, 0.5);
 }
