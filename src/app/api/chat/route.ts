@@ -16,7 +16,6 @@ const google = createGoogleGenerativeAI({
 const doubao = createOpenAI({
   apiKey: process.env.ARK_API_KEY || '',
   baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
-  compatibility: 'compatible',
 });
 
 export async function POST(request: NextRequest) {

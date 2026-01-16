@@ -243,7 +243,6 @@ export default function Home() {
         imageContext={cardDescription}
         imageUrl={cardState.imageUrl || undefined}
         provider={provider}
-        onViewImage={handleViewCard}
       />
 
       {/* 底部装饰 */}
