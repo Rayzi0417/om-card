@@ -12,12 +12,20 @@ const doubao = createOpenAI({
 /**
  * 使用豆包生成图像
  * 豆包图像生成使用火山引擎的独立 API
+ * @param prompt - 正向提示词
+ * @param negativePrompt - 负向提示词（可选）
  */
-export async function generateImageWithDoubao(prompt: string): Promise<string> {
+export async function generateImageWithDoubao(prompt: string, negativePrompt?: string): Promise<string> {
   const apiKey = process.env.ARK_API_KEY;
   
   if (!apiKey) {
     throw new Error('ARK_API_KEY not configured');
+  }
+
+  // 将 negative prompt 添加到主 prompt 中
+  let fullPrompt = prompt;
+  if (negativePrompt) {
+    fullPrompt += ` DO NOT include: ${negativePrompt}`;
   }
 
   try {
@@ -30,7 +38,7 @@ export async function generateImageWithDoubao(prompt: string): Promise<string> {
       },
       body: JSON.stringify({
         model: 'doubao-seedream-4-5-251128',
-        prompt: prompt,
+        prompt: fullPrompt,
         size: '1920x1920',
         response_format: 'url',
       }),

@@ -2,6 +2,9 @@
 
 export type AIProvider = 'google' | 'doubao';
 
+// 卡组风格类型
+export type DeckStyle = 'abstract' | 'figurative';
+
 // ============== V1.1 新增类型 ==============
 
 /**

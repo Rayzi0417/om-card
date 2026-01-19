@@ -10,14 +10,21 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer';
-import type { AIProvider } from '@/types';
+import type { AIProvider, DeckStyle } from '@/types';
 
 interface SettingsDrawerProps {
   provider: AIProvider;
   onProviderChange: (provider: AIProvider) => void;
+  deckStyle?: DeckStyle;
+  onDeckStyleChange?: (style: DeckStyle) => void;
 }
 
-export function SettingsDrawer({ provider, onProviderChange }: SettingsDrawerProps) {
+export function SettingsDrawer({ 
+  provider, 
+  onProviderChange,
+  deckStyle = 'abstract',
+  onDeckStyleChange
+}: SettingsDrawerProps) {
   return (
     <Drawer>
       <DrawerTrigger asChild>
@@ -39,6 +46,31 @@ export function SettingsDrawer({ provider, onProviderChange }: SettingsDrawerPro
         </DrawerHeader>
 
         <div className="p-6 space-y-6">
+          {/* 卡组风格选择 */}
+          {onDeckStyleChange && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-[#edf2f4]">卡组风格</h3>
+              
+              <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10">
+                <div className="flex items-center gap-2">
+                  <span className={`text-sm ${deckStyle === 'figurative' ? 'text-[#c9a959]' : 'text-[#8b8b9e]'}`}>
+                    具象
+                  </span>
+                  <Switch
+                    checked={deckStyle === 'abstract'}
+                    onCheckedChange={(checked) => 
+                      onDeckStyleChange(checked ? 'abstract' : 'figurative')
+                    }
+                    className="data-[state=checked]:bg-[#c9a959]"
+                  />
+                  <span className={`text-sm ${deckStyle === 'abstract' ? 'text-[#c9a959]' : 'text-[#8b8b9e]'}`}>
+                    抽象
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* AI 模型选择 */}
           <div className="space-y-4">
             <h3 className="text-sm font-medium text-[#edf2f4]">AI 模型</h3>
@@ -81,7 +113,7 @@ export function SettingsDrawer({ provider, onProviderChange }: SettingsDrawerPro
               <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-[#edf2f4]">Om Card</span>
-                  <span className="text-xs text-[#8b8b9e]">v1.0.0</span>
+                  <span className="text-xs text-[#8b8b9e]">v1.1.0</span>
                 </div>
                 <p className="text-xs text-[#8b8b9e] leading-relaxed">
                   一款遵循学术规范的数字化心理投射工具，基于 OH Cards 原理。

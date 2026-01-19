@@ -129,39 +129,63 @@ export function pickRandomWord(): WordCard {
   };
 }
 
+// ============== 卡组类型 ==============
+
+export type DeckStyle = 'abstract' | 'figurative';
+
 // ============== 图像提示词池 (Image Prompt Pool) ==============
 
-const archetypes: string[] = [
+// 抽象卡组 - 模糊意象
+const abstractArchetypes: string[] = [
   "floating feathers",
   "scattered leaves",
   "rippling water",
   "swirling clouds",
   "distant mountains",
   "winding path",
-  "empty chair",
-  "open doorway",
-  "broken mirror",
   "tangled threads",
   "falling petals",
   "rising smoke",
   "flickering flame",
   "melting ice",
   "growing roots",
-  "flying birds",
   "still pond",
   "cracked earth",
-  "blooming flower",
-  "withered tree",
-  "spiral staircase",
-  "hidden cave",
-  "crossing bridges",
-  "scattered stones",
   "dancing shadows",
   "glowing orb",
   "fading footprints",
-  "nested boxes",
   "unraveling rope",
-  "suspended droplets"
+  "suspended droplets",
+  "ink diffusing in water"
+];
+
+// 具象卡组 - 有物体、人物、场景
+const figurativeArchetypes: string[] = [
+  "a person standing at a crossroads",
+  "a child looking out a window",
+  "hands reaching toward each other",
+  "a figure walking through a forest",
+  "someone sitting alone on a bench",
+  "a person climbing a mountain",
+  "two people facing each other",
+  "a figure standing at the edge of the sea",
+  "someone opening a door",
+  "a person holding a bird",
+  "a traveler with a lantern",
+  "a figure looking into a mirror",
+  "someone planting a seed",
+  "a person releasing a balloon",
+  "hands holding a candle",
+  "a figure on a bridge over water",
+  "someone writing a letter",
+  "a person embracing their shadow",
+  "a figure waiting at a train station",
+  "someone standing in the rain",
+  "a person discovering a hidden garden",
+  "hands breaking chains",
+  "a figure ascending stairs",
+  "someone gazing at stars",
+  "a person carrying a heavy burden"
 ];
 
 const colorPalettes: string[] = [
@@ -190,17 +214,24 @@ const atmospheres: string[] = [
   "tranquil"
 ];
 
-const promptTemplate = "A specialized therapeutic art texture. Abstract watercolor wash, indistinct shapes suggesting {archetype}, misty {atmosphere} atmosphere, {colorPalette}. Full bleed composition filling entire canvas, no borders, no margins, no text, no sharp details. Style: naive art, Rorschach inkblot test aesthetic, soft blurred edges, dreamlike and ambiguous.";
+// 抽象卡组模板
+const abstractPromptTemplate = "A specialized therapeutic art texture. Abstract watercolor wash, indistinct shapes suggesting {archetype}, misty {atmosphere} atmosphere, {colorPalette}. Full bleed composition filling entire canvas, no borders, no margins, no text, no sharp details. Style: naive art, Rorschach inkblot test aesthetic, soft blurred edges, dreamlike and ambiguous.";
+
+// 具象卡组模板
+const figurativePromptTemplate = "A beautiful therapeutic illustration showing {archetype}. Soft watercolor style, {atmosphere} mood, {colorPalette}. Gentle and evocative, like an OH card. Full bleed composition, no borders, no text. Style: dreamy naive art, emotionally resonant, slightly blurred soft focus.";
 
 /**
- * 生成模糊内图的提示词
- * V1.1 关键变更：强制 AI 画得"模糊"、"填满画布"
+ * 生成图像提示词
+ * 支持抽象和具象两种卡组风格
  */
-export function generateBlurryImagePrompt(): {
+export function generateImagePromptV2(deckStyle: DeckStyle = 'abstract'): {
   prompt: string;
   negativePrompt: string;
   keywords: string[];
 } {
+  const archetypes = deckStyle === 'abstract' ? abstractArchetypes : figurativeArchetypes;
+  const promptTemplate = deckStyle === 'abstract' ? abstractPromptTemplate : figurativePromptTemplate;
+  
   const archetype = randomPick(archetypes);
   const colorPalette = randomPick(colorPalettes);
   const atmosphere = randomPick(atmospheres);
@@ -211,30 +242,44 @@ export function generateBlurryImagePrompt(): {
     .replace('{colorPalette}', colorPalette)
     .replace('{atmosphere}', atmosphere);
   
-  const negativePrompt = "text, letters, words, writing, frames, borders, white background, realistic, sharp details, photorealistic, clear edges, defined shapes, margins, padding";
+  // 关键：添加水印移除的 negative prompt
+  const negativePrompt = "watermark, signature, logo, AI generated, text, letters, words, writing, frames, borders, white background, realistic, sharp details, photorealistic, clear edges, margins, padding, copyright";
   
   return {
     prompt,
     negativePrompt,
-    keywords: [archetype, atmosphere, colorPalette.split(' and ')[0]]
+    keywords: [archetype.split(' ').slice(-2).join(' '), atmosphere]
   };
+}
+
+// 兼容旧接口
+export function generateBlurryImagePrompt() {
+  return generateImagePromptV2('abstract');
 }
 
 // ============== V1.1 主接口 ==============
 
+interface CardDrawResultV2 extends CardDrawResult {
+  negativePrompt: string;
+  deckStyle: DeckStyle;
+}
+
 /**
  * V1.1 一键生成完整的抽牌数据
  * 返回独立的 word + imagePrompt 组合
+ * @param deckStyle - 卡组风格：'abstract' 抽象 | 'figurative' 具象
  */
-export function drawCardV2(): CardDrawResult {
+export function drawCardV2(deckStyle: DeckStyle = 'abstract'): CardDrawResultV2 {
   // 独立随机：文字和图像互不关联
   const word = pickRandomWord();
-  const { prompt, keywords } = generateBlurryImagePrompt();
+  const { prompt, negativePrompt, keywords } = generateImagePromptV2(deckStyle);
   
   return {
     word,
     imagePrompt: prompt,
-    promptKeywords: keywords
+    negativePrompt,
+    promptKeywords: keywords,
+    deckStyle
   };
 }
 

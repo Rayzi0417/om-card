@@ -32,6 +32,7 @@ export function ChatBox({
   imageContext  // 兼容但不再使用
 }: ChatBoxProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);  // 输入框 ref
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -108,6 +109,8 @@ export function ChatBox({
     } finally {
       setIsLoading(false);
       scrollToBottom();
+      // AI 回复完成后自动聚焦输入框
+      setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [messages, word, provider, scrollToBottom]);
 
@@ -242,12 +245,14 @@ export function ChatBox({
           <form onSubmit={onSubmit} className="flex-shrink-0 p-4 border-t border-white/5">
             <div className="flex gap-2">
               <input
+                ref={inputRef}
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="分享你的感受..."
                 className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 py-3 text-sm text-[#edf2f4] placeholder:text-[#8b8b9e] focus:outline-none focus:border-[#c9a959]/50"
                 disabled={isLoading}
+                autoFocus
               />
               <Button
                 type="submit"

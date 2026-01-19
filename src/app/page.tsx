@@ -53,7 +53,7 @@ export default function Home() {
           className="max-w-md mx-auto"
         >
           <div className="text-center mb-8">
-            {/* 装饰性图标 - 水晶球/镜子意象 */}
+            {/* 装饰性图标 - 月亮倒映在海面上 */}
             <motion.div
               className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#c9a959]/20 to-[#c9a959]/5 flex items-center justify-center border border-[#c9a959]/20"
               animate={{ 
@@ -65,11 +65,18 @@ export default function Home() {
               }}
               transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY }}
             >
-              <svg className="w-8 h-8 text-[#c9a959]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                {/* 简约的镜子/窗户图标 */}
-                <rect x="4" y="4" width="16" height="16" rx="2" />
-                <line x1="12" y1="4" x2="12" y2="20" />
-                <line x1="4" y1="12" x2="20" y2="12" />
+              <svg className="w-8 h-8 text-[#c9a959]" viewBox="0 0 24 24" fill="none">
+                {/* 圆月 */}
+                <circle cx="12" cy="6" r="4" fill="currentColor" opacity="0.9" />
+                {/* 海平面波浪 */}
+                <path 
+                  d="M2 13 Q5 12 8 13 T14 13 T20 13 T22 13" 
+                  stroke="currentColor" 
+                  strokeWidth="0.7"
+                  opacity="0.4"
+                />
+                {/* 月亮倒影 - 椭圆形拉长效果 */}
+                <ellipse cx="12" cy="18" rx="3" ry="4" fill="currentColor" opacity="0.25" />
               </svg>
             </motion.div>
             

@@ -10,7 +10,7 @@ import { CardViewV2 } from '@/components/card-view';
 import { CompositeCard } from '@/components/composite-card';
 import { ChatBox } from '@/components/chat-box';
 import { SettingsDrawer } from '@/components/settings-drawer';
-import type { AIProvider, CardStateV2, DrawResponseV2 } from '@/types';
+import type { AIProvider, DeckStyle, CardStateV2, DrawResponseV2 } from '@/types';
 
 /**
  * 单张抽牌玩法 - "当下映照"
@@ -18,6 +18,7 @@ import type { AIProvider, CardStateV2, DrawResponseV2 } from '@/types';
 export default function SinglePlayPage() {
   // 状态管理
   const [provider, setProvider] = useState<AIProvider>('doubao');
+  const [deckStyle, setDeckStyle] = useState<DeckStyle>('abstract');
   const [cardState, setCardState] = useState<CardStateV2>({
     isLoading: false,
     cardId: null,
@@ -51,7 +52,7 @@ export default function SinglePlayPage() {
       const response = await fetch('/api/draw', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider }),
+        body: JSON.stringify({ provider, deckStyle }),
       });
 
       if (response.status === 429) {
@@ -86,7 +87,7 @@ export default function SinglePlayPage() {
         error: '生成失败' 
       }));
     }
-  }, [provider, cardState.imageUrl]);
+  }, [provider, deckStyle, cardState.imageUrl]);
 
   // 关闭卡牌，开启对话
   const handleCardClose = useCallback(() => {
@@ -163,6 +164,8 @@ export default function SinglePlayPage() {
           <SettingsDrawer 
             provider={provider}
             onProviderChange={setProvider}
+            deckStyle={deckStyle}
+            onDeckStyleChange={setDeckStyle}
           />
         </motion.div>
       </header>

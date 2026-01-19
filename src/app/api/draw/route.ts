@@ -31,28 +31,33 @@ export async function POST(request: NextRequest) {
 
     // 解析请求体
     let provider: AIProvider = 'google';
+    let deckStyle: 'abstract' | 'figurative' = 'abstract'; // 默认抽象卡组
     try {
       const body = await request.json();
       if (body.provider === 'doubao') {
         provider = 'doubao';
       }
+      if (body.deckStyle === 'abstract') {
+        deckStyle = 'abstract';
+      }
     } catch {
-      // 使用默认 provider
+      // 使用默认值
     }
 
     // V1.1: 使用双随机池生成卡牌数据
-    const cardData = drawCardV2();
+    const cardData = drawCardV2(deckStyle);
     console.log('Drawing V1.1 card:', {
       word: cardData.word.en,
-      keywords: cardData.promptKeywords
+      keywords: cardData.promptKeywords,
+      deckStyle: cardData.deckStyle
     });
 
-    // 调用 AI 生成模糊内图
+    // 调用 AI 生成图像
     let imageUrl: string;
     
     try {
       if (provider === 'doubao') {
-        imageUrl = await generateImageWithDoubao(cardData.imagePrompt);
+        imageUrl = await generateImageWithDoubao(cardData.imagePrompt, cardData.negativePrompt);
       } else {
         imageUrl = await generateImageWithGoogle(cardData.imagePrompt);
       }
