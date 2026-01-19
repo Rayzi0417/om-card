@@ -1,4 +1,4 @@
-// V1.1 随机 Prompt 生成器 - 双随机池系统
+// V1.2 随机 Prompt 生成器 - 双随机池系统 + OH卡风格优化
 import type { WordCard } from '@/types';
 
 // ============== 类型定义 ==============
@@ -17,125 +17,122 @@ interface CardDrawResult {
 
 // ============== 工具函数 ==============
 
-/**
- * 随机选择数组中的一个元素
- */
 function randomPick<T>(array: T[]): T {
   return array[Math.floor(Math.random() * array.length)];
+}
+
+function randomPickN<T>(array: T[], n: number): T[] {
+  const shuffled = [...array].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n);
 }
 
 // ============== 文字池 (Word Pool) ==============
 // 88个 OH Cards 经典词汇
 
+// 88张 OH Cards 官方字词卡 + 空白卡
 const words: WordEntry[] = [
-  { id: 1, en: "LOVE", cn: "爱" },
-  { id: 2, en: "FEAR", cn: "恐惧" },
-  { id: 3, en: "JOY", cn: "喜悦" },
-  { id: 4, en: "ANGER", cn: "愤怒" },
-  { id: 5, en: "SADNESS", cn: "悲伤" },
-  { id: 6, en: "HOPE", cn: "希望" },
-  { id: 7, en: "GUILT", cn: "愧疚" },
-  { id: 8, en: "SHAME", cn: "羞耻" },
-  { id: 9, en: "PRIDE", cn: "骄傲" },
-  { id: 10, en: "PEACE", cn: "平静" },
-  { id: 11, en: "LONGING", cn: "渴望" },
-  { id: 12, en: "TRUST", cn: "信任" },
-  { id: 13, en: "DOUBT", cn: "怀疑" },
-  { id: 14, en: "COURAGE", cn: "勇气" },
-  { id: 15, en: "DESIRE", cn: "欲望" },
-  { id: 16, en: "FATHER", cn: "父亲" },
-  { id: 17, en: "MOTHER", cn: "母亲" },
-  { id: 18, en: "CHILD", cn: "孩子" },
-  { id: 19, en: "FRIEND", cn: "朋友" },
-  { id: 20, en: "STRANGER", cn: "陌生人" },
-  { id: 21, en: "SELF", cn: "自我" },
-  { id: 22, en: "SHADOW", cn: "阴影" },
-  { id: 23, en: "FAMILY", cn: "家庭" },
-  { id: 24, en: "LOVER", cn: "爱人" },
-  { id: 25, en: "ENEMY", cn: "敌人" },
-  { id: 26, en: "TEACHER", cn: "老师" },
-  { id: 27, en: "BODY", cn: "身体" },
-  { id: 28, en: "SOUL", cn: "灵魂" },
-  { id: 29, en: "HEART", cn: "心" },
-  { id: 30, en: "MIND", cn: "头脑" },
-  { id: 31, en: "STOP", cn: "停" },
-  { id: 32, en: "GO", cn: "走" },
-  { id: 33, en: "WAIT", cn: "等待" },
-  { id: 34, en: "RUN", cn: "奔跑" },
-  { id: 35, en: "HIDE", cn: "隐藏" },
-  { id: 36, en: "SEEK", cn: "寻找" },
-  { id: 37, en: "GIVE", cn: "给予" },
-  { id: 38, en: "TAKE", cn: "索取" },
-  { id: 39, en: "CREATE", cn: "创造" },
-  { id: 40, en: "DESTROY", cn: "毁灭" },
-  { id: 41, en: "HOLD", cn: "握住" },
-  { id: 42, en: "RELEASE", cn: "放手" },
-  { id: 43, en: "SPEAK", cn: "诉说" },
-  { id: 44, en: "SILENCE", cn: "沉默" },
-  { id: 45, en: "LISTEN", cn: "倾听" },
-  { id: 46, en: "LOST", cn: "迷失" },
-  { id: 47, en: "FOUND", cn: "被找到" },
-  { id: 48, en: "ALONE", cn: "孤独" },
-  { id: 49, en: "TOGETHER", cn: "相聚" },
-  { id: 50, en: "FREE", cn: "自由" },
-  { id: 51, en: "TRAPPED", cn: "困住" },
-  { id: 52, en: "EMPTY", cn: "空虚" },
-  { id: 53, en: "FULL", cn: "充盈" },
-  { id: 54, en: "BROKEN", cn: "破碎" },
-  { id: 55, en: "WHOLE", cn: "完整" },
-  { id: 56, en: "WEAK", cn: "脆弱" },
-  { id: 57, en: "STRONG", cn: "坚强" },
-  { id: 58, en: "SAFE", cn: "安全" },
-  { id: 59, en: "DANGER", cn: "危险" },
-  { id: 60, en: "OPEN", cn: "敞开" },
-  { id: 61, en: "CLOSED", cn: "关闭" },
-  { id: 62, en: "PAST", cn: "过去" },
-  { id: 63, en: "FUTURE", cn: "未来" },
-  { id: 64, en: "NOW", cn: "此刻" },
-  { id: 65, en: "NEVER", cn: "永不" },
-  { id: 66, en: "ALWAYS", cn: "永远" },
-  { id: 67, en: "BEGINNING", cn: "开始" },
-  { id: 68, en: "END", cn: "结束" },
-  { id: 69, en: "CHANGE", cn: "改变" },
-  { id: 70, en: "STAY", cn: "停留" },
-  { id: 71, en: "HOME", cn: "家" },
-  { id: 72, en: "ROAD", cn: "路" },
-  { id: 73, en: "DOOR", cn: "门" },
-  { id: 74, en: "WINDOW", cn: "窗" },
-  { id: 75, en: "BRIDGE", cn: "桥" },
-  { id: 76, en: "WALL", cn: "墙" },
-  { id: 77, en: "EDGE", cn: "边缘" },
-  { id: 78, en: "CENTER", cn: "中心" },
-  { id: 79, en: "LIGHT", cn: "光" },
-  { id: 80, en: "DARK", cn: "黑暗" },
-  { id: 81, en: "DREAM", cn: "梦" },
-  { id: 82, en: "REALITY", cn: "现实" },
-  { id: 83, en: "SECRET", cn: "秘密" },
-  { id: 84, en: "TRUTH", cn: "真相" },
-  { id: 85, en: "LIFE", cn: "生命" },
-  { id: 86, en: "DEATH", cn: "死亡" },
-  { id: 87, en: "BREATH", cn: "呼吸" },
-  { id: 88, en: "CHOICE", cn: "选择" }
+  { id: 0, en: "", cn: "" },  // 空白卡
+  { id: 1, en: "FEELINGS", cn: "感情" },
+  { id: 2, en: "LONELINESS", cn: "孤独" },
+  { id: 3, en: "ANGER", cn: "生气" },
+  { id: 4, en: "ANXIETY", cn: "焦虑" },
+  { id: 5, en: "APOLOGY", cn: "道歉" },
+  { id: 6, en: "APPEARANCE", cn: "外表" },
+  { id: 7, en: "ATTACK", cn: "攻击" },
+  { id: 8, en: "ATTRACTION", cn: "吸引" },
+  { id: 9, en: "BEGINNING", cn: "开始" },
+  { id: 10, en: "PRAISE", cn: "夸赞" },
+  { id: 11, en: "BOREDOM", cn: "厌烦" },
+  { id: 12, en: "BOSS", cn: "上司" },
+  { id: 13, en: "CHANGE", cn: "改变" },
+  { id: 14, en: "CHILD", cn: "孩童" },
+  { id: 15, en: "HUMOR", cn: "诙谐" },
+  { id: 16, en: "COMPULSION", cn: "强迫" },
+  { id: 17, en: "COMPLIANCE", cn: "顺应" },
+  { id: 18, en: "CHAOS", cn: "混乱" },
+  { id: 19, en: "CYCLE", cn: "循环" },
+  { id: 20, en: "DANGER", cn: "危险" },
+  { id: 21, en: "DEPENDENCE", cn: "依赖" },
+  { id: 22, en: "DESTRUCTION", cn: "破坏" },
+  { id: 23, en: "EMBARRASSMENT", cn: "丢脸" },
+  { id: 24, en: "DISLIKE", cn: "不喜欢" },
+  { id: 25, en: "DREAM", cn: "梦想" },
+  { id: 26, en: "ELIMINATION", cn: "消除" },
+  { id: 27, en: "AWKWARDNESS", cn: "尴尬" },
+  { id: 28, en: "EROTICISM", cn: "色情" },
+  { id: 29, en: "EXPERT", cn: "专家" },
+  { id: 30, en: "FAILURE", cn: "失败" },
+  { id: 31, en: "FANTASY", cn: "幻想" },
+  { id: 32, en: "FATHER", cn: "父亲" },
+  { id: 33, en: "FEAR", cn: "恐惧" },
+  { id: 34, en: "FIRMNESS", cn: "坚定" },
+  { id: 35, en: "GAME", cn: "游戏" },
+  { id: 36, en: "GIVING", cn: "付出" },
+  { id: 37, en: "ADVANCEMENT", cn: "前进" },
+  { id: 38, en: "GRIEF", cn: "哀伤" },
+  { id: 39, en: "GUILT", cn: "罪恶感" },
+  { id: 40, en: "HABIT", cn: "习惯" },
+  { id: 41, en: "HATRED", cn: "憎恨" },
+  { id: 42, en: "HESITATION", cn: "犹豫" },
+  { id: 43, en: "CONCEALMENT", cn: "隐藏" },
+  { id: 44, en: "HARM", cn: "伤害" },
+  { id: 45, en: "HOME", cn: "家" },
+  { id: 46, en: "HOMOSEXUALITY", cn: "同性恋" },
+  { id: 47, en: "HOPE", cn: "希望" },
+  { id: 48, en: "HUMILIATION", cn: "羞辱" },
+  { id: 49, en: "JOY", cn: "喜悦" },
+  { id: 50, en: "LAUGHTER", cn: "欢笑" },
+  { id: 51, en: "THREAT", cn: "恐吓" },
+  { id: 52, en: "LETTING GO", cn: "放开" },
+  { id: 53, en: "MASCULINITY", cn: "男性" },
+  { id: 54, en: "LIES", cn: "谎言" },
+  { id: 55, en: "MOTHER", cn: "母亲" },
+  { id: 56, en: "NUDITY", cn: "裸体" },
+  { id: 57, en: "DEBT", cn: "亏欠" },
+  { id: 58, en: "PAIN", cn: "痛苦" },
+  { id: 59, en: "POSTURE", cn: "姿态" },
+  { id: 60, en: "POWER PLAY", cn: "权利游戏" },
+  { id: 61, en: "LOATHING", cn: "憎恶" },
+  { id: 62, en: "RESISTANCE", cn: "抗拒" },
+  { id: 63, en: "RETREAT", cn: "退省" },
+  { id: 64, en: "STUBBORNNESS", cn: "固执" },
+  { id: 65, en: "HOSTILITY", cn: "敌对" },
+  { id: 66, en: "DECAY", cn: "腐朽" },
+  { id: 67, en: "SELF-SABOTAGE", cn: "弄巧成拙" },
+  { id: 68, en: "SHAME", cn: "羞愧" },
+  { id: 69, en: "SHARING", cn: "分享" },
+  { id: 70, en: "SHOULD", cn: "应该" },
+  { id: 71, en: "SLAVERY", cn: "奴隶" },
+  { id: 72, en: "STOPPING", cn: "停止" },
+  { id: 73, en: "STRANGER", cn: "陌生人" },
+  { id: 74, en: "STUPIDITY", cn: "愚蠢" },
+  { id: 75, en: "SUCCESS", cn: "成功" },
+  { id: 76, en: "REPRESSION", cn: "压抑" },
+  { id: 77, en: "PREDATION", cn: "掠夺" },
+  { id: 78, en: "INTIMIDATION", cn: "威胁" },
+  { id: 79, en: "UGLINESS", cn: "丑陋" },
+  { id: 80, en: "VICTIM", cn: "受害者" },
+  { id: 81, en: "BETRAYAL", cn: "违背" },
+  { id: 82, en: "WAITING", cn: "等候" },
+  { id: 83, en: "EXHAUSTION", cn: "疲惫" },
+  { id: 84, en: "INTELLIGENCE", cn: "聪明" },
+  { id: 85, en: "WOMAN", cn: "女人" },
+  { id: 86, en: "WONDER", cn: "奇妙" },
+  { id: 87, en: "MISTAKE", cn: "错误" },
+  { id: 88, en: "LOVE", cn: "爱情" }
 ];
 
-/**
- * 从文字库随机抽取一个词
- */
 export function pickRandomWord(): WordCard {
   const word = randomPick(words);
-  return {
-    en: word.en,
-    cn: word.cn
-  };
+  return { en: word.en, cn: word.cn };
 }
 
 // ============== 卡组类型 ==============
 
 export type DeckStyle = 'abstract' | 'figurative';
 
-// ============== 图像提示词池 (Image Prompt Pool) ==============
+// ============== 抽象卡组 (Abstract Deck) ==============
 
-// 抽象卡组 - 模糊意象
 const abstractArchetypes: string[] = [
   "floating feathers",
   "scattered leaves",
@@ -159,36 +156,7 @@ const abstractArchetypes: string[] = [
   "ink diffusing in water"
 ];
 
-// 具象卡组 - 有物体、人物、场景
-const figurativeArchetypes: string[] = [
-  "a person standing at a crossroads",
-  "a child looking out a window",
-  "hands reaching toward each other",
-  "a figure walking through a forest",
-  "someone sitting alone on a bench",
-  "a person climbing a mountain",
-  "two people facing each other",
-  "a figure standing at the edge of the sea",
-  "someone opening a door",
-  "a person holding a bird",
-  "a traveler with a lantern",
-  "a figure looking into a mirror",
-  "someone planting a seed",
-  "a person releasing a balloon",
-  "hands holding a candle",
-  "a figure on a bridge over water",
-  "someone writing a letter",
-  "a person embracing their shadow",
-  "a figure waiting at a train station",
-  "someone standing in the rain",
-  "a person discovering a hidden garden",
-  "hands breaking chains",
-  "a figure ascending stairs",
-  "someone gazing at stars",
-  "a person carrying a heavy burden"
-];
-
-const colorPalettes: string[] = [
+const abstractColorPalettes: string[] = [
   "warm ochre and muted rose",
   "cool blue and misty grey",
   "soft lavender and pale gold",
@@ -201,55 +169,229 @@ const colorPalettes: string[] = [
   "burnt sienna and soft teal"
 ];
 
-const atmospheres: string[] = [
-  "serene",
-  "melancholic",
-  "ethereal",
-  "turbulent",
-  "contemplative",
-  "mysterious",
-  "nostalgic",
-  "hopeful",
-  "haunting",
-  "tranquil"
+const abstractAtmospheres: string[] = [
+  "serene", "melancholic", "ethereal", "turbulent", "contemplative",
+  "mysterious", "nostalgic", "hopeful", "haunting", "tranquil"
 ];
 
-// 抽象卡组模板
 const abstractPromptTemplate = "A specialized therapeutic art texture. Abstract watercolor wash, indistinct shapes suggesting {archetype}, misty {atmosphere} atmosphere, {colorPalette}. Full bleed composition filling entire canvas, no borders, no margins, no text, no sharp details. Style: naive art, Rorschach inkblot test aesthetic, soft blurred edges, dreamlike and ambiguous.";
 
-// 具象卡组模板
-const figurativePromptTemplate = "A beautiful therapeutic illustration showing {archetype}. Soft watercolor style, {atmosphere} mood, {colorPalette}. Gentle and evocative, like an OH card. Full bleed composition, no borders, no text. Style: dreamy naive art, emotionally resonant, slightly blurred soft focus.";
+// ============== 具象卡组 V2 (Figurative Deck - OH Card Style) ==============
+
+// 风格修饰词 - Ely Raman OH卡美学
+const styleModifiers: string[] = [
+  "naive watercolor style",
+  "Ely Raman aesthetic",
+  "loose brushwork",
+  "wet-on-wet technique",
+  "muted earth tones",
+  "psychological projection art",
+  "dreamlike atmosphere",
+  "minimalist composition",
+  "ambiguous narrative",
+  "soft edges",
+  "figurative but indistinct"
+];
+
+// 负面提示词 - 防止生成文字和过度清晰
+const figurativeNegativePrompts: string[] = [
+  "text", "words", "letters", "signature", "watermark",
+  "photorealistic", "highly detailed", "sharp focus", "HD", "4k", "8k",
+  "cartoon", "anime", "manga", "3d render", "cgi",
+  "bright neon colors", "complex background", "cluttered", "facial features", "clear eyes"
+];
+
+// 氛围词库
+const figurativeAtmospheres: string[] = [
+  "misty", "twilight", "dawn", "gloomy", "sunny but cold",
+  "silent", "chaotic", "peaceful", "melancholic", "dreamy",
+  "hazy", "ethereal"
+];
+
+// 原型模板 - 三种类别
+interface ArchetypeTemplate {
+  category: string;
+  template: string;
+}
+
+const archetypeTemplates: ArchetypeTemplate[] = [
+  {
+    category: "Interpersonal & Conflict",
+    template: "A watercolor painting of [Subject], focusing on body language and silhouette, faceless figures, ambiguous relationship, soft edges, [Atmosphere] background."
+  },
+  {
+    category: "Metaphorical Object",
+    template: "A watercolor painting of a single [Subject], isolated in a [Atmosphere] setting, symbolic meaning, simple composition, loose strokes."
+  },
+  {
+    category: "Life Scene & Narrative",
+    template: "A watercolor painting of [Subject], capturing a moment of everyday life but with a dreamlike twist, soft colors, evocative and open-ended."
+  }
+];
+
+// 主题库 - 60+ 经典OH卡意象
+const subjects: string[] = [
+  // 1. 人际与关系 (The Social Self) - 15个
+  "two people sitting back to back",
+  "a figure standing alone in a crowd",
+  "a handshake between strangers",
+  "a person curling up on the floor",
+  "a parent holding a child",
+  "someone pointing a finger",
+  "a group circle holding hands",
+  "a person looking into a mirror",
+  "shadows of people on a wall",
+  "a figure walking away into the distance",
+  "two faces close together but not touching",
+  "a person hiding behind a mask",
+  "two hands almost touching",
+  "a figure embracing their own shadow",
+  "someone reaching out from darkness",
+  
+  // 2. 障碍与突破 (Obstacles & Breakthroughs) - 12个
+  "a closed heavy door",
+  "a key lying on the ground",
+  "a ladder reaching into clouds",
+  "a brick wall with a crack of light",
+  "a knotted rope",
+  "a bird flying out of a cage",
+  "a crossroads with multiple signs",
+  "a bridge that ends in mid-air",
+  "a person climbing a steep hill",
+  "a light at the end of a tunnel",
+  "broken chains on the ground",
+  "a fence with a hole in it",
+  
+  // 3. 情绪隐喻 (Emotional Metaphors) - 15个
+  "a storm gathering over a small house",
+  "a calm lake with perfect reflection",
+  "a withered tree in winter",
+  "a sprouting seed in dry cracked soil",
+  "a burning candle in darkness",
+  "spilled water on a table",
+  "a heavy stone being carried",
+  "floating feathers in the wind",
+  "a dark cave entrance",
+  "sunlight breaking through storm clouds",
+  "a tangled ball of yarn",
+  "a wilting flower in a vase",
+  "tears falling into water",
+  "a heart-shaped lock",
+  "flames consuming paper",
+  
+  // 4. 日常生活场景 (Everyday Ambiguity) - 12个
+  "an empty chair in a sunlit room",
+  "a table set for one person",
+  "a bed with messy tangled sheets",
+  "a window looking out at falling rain",
+  "a packed suitcase by the door",
+  "an old phone off the hook",
+  "footprints fading in wet sand",
+  "an unopened letter on a table",
+  "an open book with blank pages",
+  "shoes left abandoned on a path",
+  "a half-drunk cup of coffee",
+  "clothes hanging on a line",
+  
+  // 5. 抽象与超现实 (Surreal Elements) - 10个
+  "a hand reaching down from the sky",
+  "a clock with melting numbers",
+  "a figure merging with a tree",
+  "stairs leading into clouds",
+  "a giant eye watching from above",
+  "a small house floating on still water",
+  "a puzzle with missing pieces",
+  "a maze seen from high above",
+  "a person with butterfly wings",
+  "roots growing from a human heart",
+  
+  // 6. 自然力量 (Forces of Nature) - 8个
+  "a single tree bending in strong wind",
+  "waves crashing on empty shore",
+  "a mountain peak hidden in fog",
+  "a river splitting into two paths",
+  "rain falling on a still pond",
+  "a sunrise over dark mountains",
+  "lightning striking a lone tree",
+  "snow covering everything in white"
+];
 
 /**
- * 生成图像提示词
- * 支持抽象和具象两种卡组风格
+ * 生成具象卡组提示词 (V2 OH卡风格)
  */
-export function generateImagePromptV2(deckStyle: DeckStyle = 'abstract'): {
+function generateFigurativePromptV2(): {
   prompt: string;
   negativePrompt: string;
   keywords: string[];
 } {
-  const archetypes = deckStyle === 'abstract' ? abstractArchetypes : figurativeArchetypes;
-  const promptTemplate = deckStyle === 'abstract' ? abstractPromptTemplate : figurativePromptTemplate;
+  // 1. 随机选择模板
+  const template = randomPick(archetypeTemplates);
   
-  const archetype = randomPick(archetypes);
-  const colorPalette = randomPick(colorPalettes);
-  const atmosphere = randomPick(atmospheres);
+  // 2. 随机选择主题和氛围
+  const subject = randomPick(subjects);
+  const atmosphere = randomPick(figurativeAtmospheres);
   
-  // 填充模板
-  const prompt = promptTemplate
+  // 3. 随机选择 2-3 个风格修饰词
+  const selectedModifiers = randomPickN(styleModifiers, 2 + Math.floor(Math.random() * 2));
+  
+  // 4. 填充模板
+  let prompt = template.template
+    .replace('[Subject]', subject)
+    .replace('[Atmosphere]', atmosphere);
+  
+  // 5. 追加风格修饰词
+  prompt += ` Style: ${selectedModifiers.join(', ')}.`;
+  
+  // 6. 组合负面提示词
+  const negativePrompt = figurativeNegativePrompts.join(', ');
+  
+  // 7. 提取关键词用于显示
+  const subjectKeyword = subject.split(' ').slice(-2).join(' ');
+  
+  return {
+    prompt,
+    negativePrompt,
+    keywords: [subjectKeyword, atmosphere, template.category]
+  };
+}
+
+/**
+ * 生成抽象卡组提示词
+ */
+function generateAbstractPrompt(): {
+  prompt: string;
+  negativePrompt: string;
+  keywords: string[];
+} {
+  const archetype = randomPick(abstractArchetypes);
+  const colorPalette = randomPick(abstractColorPalettes);
+  const atmosphere = randomPick(abstractAtmospheres);
+  
+  const prompt = abstractPromptTemplate
     .replace('{archetype}', archetype)
     .replace('{colorPalette}', colorPalette)
     .replace('{atmosphere}', atmosphere);
   
-  // 关键：添加水印移除的 negative prompt
   const negativePrompt = "watermark, signature, logo, AI generated, text, letters, words, writing, frames, borders, white background, realistic, sharp details, photorealistic, clear edges, margins, padding, copyright";
   
   return {
     prompt,
     negativePrompt,
-    keywords: [archetype.split(' ').slice(-2).join(' '), atmosphere]
+    keywords: [archetype, atmosphere]
   };
+}
+
+// ============== 主接口 ==============
+
+export function generateImagePromptV2(deckStyle: DeckStyle = 'abstract'): {
+  prompt: string;
+  negativePrompt: string;
+  keywords: string[];
+} {
+  if (deckStyle === 'figurative') {
+    return generateFigurativePromptV2();
+  }
+  return generateAbstractPrompt();
 }
 
 // 兼容旧接口
@@ -257,20 +399,15 @@ export function generateBlurryImagePrompt() {
   return generateImagePromptV2('abstract');
 }
 
-// ============== V1.1 主接口 ==============
-
 interface CardDrawResultV2 extends CardDrawResult {
   negativePrompt: string;
   deckStyle: DeckStyle;
 }
 
 /**
- * V1.1 一键生成完整的抽牌数据
- * 返回独立的 word + imagePrompt 组合
- * @param deckStyle - 卡组风格：'abstract' 抽象 | 'figurative' 具象
+ * V1.2 一键生成完整的抽牌数据
  */
 export function drawCardV2(deckStyle: DeckStyle = 'abstract'): CardDrawResultV2 {
-  // 独立随机：文字和图像互不关联
   const word = pickRandomWord();
   const { prompt, negativePrompt, keywords } = generateImagePromptV2(deckStyle);
   
@@ -285,60 +422,33 @@ export function drawCardV2(deckStyle: DeckStyle = 'abstract'): CardDrawResultV2 
 
 // ============== V1.0 兼容接口 (已弃用) ==============
 
-// 旧版意象词库 (Archetypes) - 保留用于兼容
 const LEGACY_ARCHETYPES = [
   '门', '钥匙', '桥', '鸟', '阴影', '镜子', '迷宫',
-  '远山', '空椅子', '枯树', '种子', '窗户', '阶梯', '洞穴',
-  '河流', '月亮', '面具', '船', '花园', '塔', '井',
-  '蜡烛', '信封', '时钟', '羽毛', '贝壳', '蝴蝶', '蜘蛛网',
-  '沙漏', '灯笼', '风筝', '气球', '锚', '指南针', '地图',
-  '书本', '钥匙孔', '裂缝', '影子', '倒影'
+  '远山', '空椅子', '枯树', '种子', '窗户', '阶梯', '洞穴'
 ];
 
-// 旧版氛围词库 (Atmospheres)
 const LEGACY_ATMOSPHERES = [
   '迷雾的', '金色的', '破碎的', '寂静的', '暴风雨前的',
-  '温暖的', '模糊的', '深邃的', '晨光的', '黄昏的',
-  '梦幻的', '神秘的', '宁静的', '忧郁的', '漂浮的',
-  '褪色的', '朦胧的', '苍白的', '绚烂的', '孤独的',
-  '被遗忘的', '永恒的', '流动的', '静止的', '遥远的'
+  '温暖的', '模糊的', '深邃的', '晨光的', '黄昏的'
 ];
 
-/**
- * @deprecated V1.0 兼容 - 生成随机的意象和氛围组合
- */
+/** @deprecated */
 export function generateRandomCombination() {
-  const archetype = randomPick(LEGACY_ARCHETYPES);
-  const atmosphere = randomPick(LEGACY_ATMOSPHERES);
-  return { archetype, atmosphere };
+  return { archetype: randomPick(LEGACY_ARCHETYPES), atmosphere: randomPick(LEGACY_ATMOSPHERES) };
 }
 
-/**
- * @deprecated V1.0 兼容 - 生成图像 Prompt
- */
+/** @deprecated */
 export function generateImagePrompt(archetype: string, atmosphere: string): string {
-  return `A beautiful naive watercolor painting of a ${atmosphere} ${archetype}. Artistic style similar to OH cards and therapeutic projection cards. Soft dreamlike quality, visible gentle brushstrokes, muted colors with subtle warm accents. Simple centered composition on cream/white background. Evocative, metaphoric, emotionally resonant. No text, no photorealism.`;
+  return `A beautiful naive watercolor painting of a ${atmosphere} ${archetype}.`;
 }
 
-/**
- * @deprecated V1.0 兼容 - 生成中文描述
- */
+/** @deprecated */
 export function generateChineseDescription(archetype: string, atmosphere: string): string {
   return `${atmosphere}${archetype}`;
 }
 
-/**
- * @deprecated V1.0 兼容 - 使用 drawCardV2() 替代
- */
+/** @deprecated */
 export function drawCard() {
   const { archetype, atmosphere } = generateRandomCombination();
-  const prompt = generateImagePrompt(archetype, atmosphere);
-  const description = generateChineseDescription(archetype, atmosphere);
-  
-  return {
-    archetype,
-    atmosphere,
-    prompt,
-    description
-  };
+  return { archetype, atmosphere, prompt: generateImagePrompt(archetype, atmosphere), description: generateChineseDescription(archetype, atmosphere) };
 }

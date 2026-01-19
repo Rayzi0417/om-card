@@ -31,14 +31,15 @@ export async function POST(request: NextRequest) {
 
     // 解析请求体
     let provider: AIProvider = 'google';
-    let deckStyle: 'abstract' | 'figurative' = 'abstract'; // 默认抽象卡组
+    let deckStyle: 'abstract' | 'figurative' = 'figurative'; // 默认具象卡组
     try {
       const body = await request.json();
       if (body.provider === 'doubao') {
         provider = 'doubao';
       }
-      if (body.deckStyle === 'abstract') {
-        deckStyle = 'abstract';
+      // 修复：正确判断卡组风格
+      if (body.deckStyle === 'figurative') {
+        deckStyle = 'figurative';
       }
     } catch {
       // 使用默认值

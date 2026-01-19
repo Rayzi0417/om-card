@@ -18,7 +18,7 @@ import type { AIProvider, DeckStyle, CardStateV2, DrawResponseV2 } from '@/types
 export default function SinglePlayPage() {
   // 状态管理
   const [provider, setProvider] = useState<AIProvider>('doubao');
-  const [deckStyle, setDeckStyle] = useState<DeckStyle>('abstract');
+  const [deckStyle, setDeckStyle] = useState<DeckStyle>('figurative');
   const [cardState, setCardState] = useState<CardStateV2>({
     isLoading: false,
     cardId: null,

@@ -113,7 +113,7 @@ export function SettingsDrawer({
               <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-[#edf2f4]">Om Card</span>
-                  <span className="text-xs text-[#8b8b9e]">v1.1.1</span>
+                  <span className="text-xs text-[#8b8b9e]">v1.1.2</span>
                 </div>
                 <p className="text-xs text-[#8b8b9e] leading-relaxed">
                   一款遵循学术规范的数字化心理投射工具，基于 OH Cards 原理。
