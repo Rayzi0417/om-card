@@ -4,7 +4,8 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { AIProvider } from '@/types';
+import { CompositeCard } from './composite-card';
+import type { AIProvider, WordCard } from '@/types';
 
 interface Message {
   id: string;
@@ -15,12 +16,21 @@ interface Message {
 interface ChatBoxProps {
   isOpen: boolean;
   onClose: () => void;
-  imageContext?: string;
+  word?: WordCard;           // V1.1: 文字卡
   imageUrl?: string;
   provider: AIProvider;
+  // 兼容旧版
+  imageContext?: string;     // @deprecated
 }
 
-export function ChatBox({ isOpen, onClose, imageContext, imageUrl, provider }: ChatBoxProps) {
+export function ChatBox({ 
+  isOpen, 
+  onClose, 
+  word,
+  imageUrl, 
+  provider,
+  imageContext  // 兼容但不再使用
+}: ChatBoxProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -56,7 +66,7 @@ export function ChatBox({ isOpen, onClose, imageContext, imageUrl, provider }: C
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: updatedMessages.map(m => ({ role: m.role, content: m.content })),
-          imageContext,
+          word,              // V1.1: 传递文字卡
           provider,
         }),
       });
@@ -78,7 +88,6 @@ export function ChatBox({ isOpen, onClose, imageContext, imageUrl, provider }: C
           const chunk = decoder.decode(value, { stream: true });
           fullText += chunk;
           
-          // 直接设置完整文本，避免重复
           setMessages(prev => {
             const newMessages = [...prev];
             const lastMsg = newMessages[newMessages.length - 1];
@@ -100,24 +109,24 @@ export function ChatBox({ isOpen, onClose, imageContext, imageUrl, provider }: C
       setIsLoading(false);
       scrollToBottom();
     }
-  }, [messages, imageContext, provider, scrollToBottom]);
+  }, [messages, word, provider, scrollToBottom]);
 
   // 初始消息
   useEffect(() => {
-    if (isOpen && !initialized && imageContext) {
+    if (isOpen && !initialized && (word || imageContext)) {
       setInitialized(true);
       sendMessage('我抽到了一张卡牌，请引导我探索。', true);
     }
-  }, [isOpen, initialized, imageContext, sendMessage]);
+  }, [isOpen, initialized, word, imageContext, sendMessage]);
 
   // 重置
   useEffect(() => {
-    if (!imageContext) {
+    if (!word && !imageContext) {
       setInitialized(false);
       setMessages([]);
       setInput('');
     }
-  }, [imageContext]);
+  }, [word, imageContext]);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,8 +150,18 @@ export function ChatBox({ isOpen, onClose, imageContext, imageUrl, provider }: C
 
       <div className="h-full flex flex-col md:flex-row">
         {/* 左侧：卡牌 */}
-        <div className="flex-shrink-0 flex items-center justify-center p-6 md:w-1/2 md:h-full bg-gradient-to-b md:bg-gradient-to-r from-[#1a1a2e] to-[#0f0f23]">
-          {imageUrl && (
+        <div className="flex-shrink-0 flex flex-col items-center justify-center p-6 md:w-1/2 md:h-full bg-gradient-to-b md:bg-gradient-to-r from-[#1a1a2e] to-[#0f0f23]">
+          {word && imageUrl ? (
+            // V1.1: 显示复合卡牌
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="w-48 md:w-56"
+            >
+              <CompositeCard word={word} imageUrl={imageUrl} />
+            </motion.div>
+          ) : imageUrl ? (
+            // 兼容旧版：只显示图片
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -154,6 +173,19 @@ export function ChatBox({ isOpen, onClose, imageContext, imageUrl, provider }: C
               >
                 <img src={imageUrl} alt="卡牌" className="w-full h-full object-cover" />
               </div>
+            </motion.div>
+          ) : null}
+          
+          {/* 文字提示 */}
+          {word && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-center mt-4"
+            >
+              <p className="text-[#c9a959] text-lg font-serif">{word.cn}</p>
+              <p className="text-[#8b8b9e] text-xs mt-1">{word.en}</p>
             </motion.div>
           )}
         </div>

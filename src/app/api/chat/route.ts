@@ -1,11 +1,11 @@
-// POST /api/chat - AI 引导师对话 (流式响应)
+// POST /api/chat - V1.1 AI 引导师对话 (流式响应)
 import { NextRequest } from 'next/server';
 import { streamText } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
 import { checkRateLimit, CHAT_RATE_LIMIT, getClientIP } from '@/lib/utils/rate-limit';
-import { getCounselorPrompt } from '@/lib/prompts/counselor';
-import type { AIProvider, ChatMessage } from '@/types';
+import { getCounselorPromptV2, getCounselorPrompt } from '@/lib/prompts/counselor';
+import type { AIProvider, ChatMessage, WordCard } from '@/types';
 
 // Google AI
 const google = createGoogleGenerativeAI({
@@ -32,7 +32,8 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const messages: ChatMessage[] = body.messages || [];
-    const imageContext: string | undefined = body.imageContext;
+    const word: WordCard | undefined = body.word;           // V1.1: 文字卡
+    const imageContext: string | undefined = body.imageContext;  // 兼容旧版
     const provider: AIProvider = body.provider || 'doubao';
 
     if (messages.length === 0) {
@@ -42,7 +43,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const systemPrompt = getCounselorPrompt(imageContext);
+    // V1.1: 使用新的洁净语言 Prompt，优先使用 word
+    const systemPrompt = word 
+      ? getCounselorPromptV2(word)
+      : getCounselorPrompt(imageContext);
 
     // 选择模型（默认豆包）
     const model = provider === 'google' 

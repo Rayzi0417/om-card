@@ -264,11 +264,11 @@ export default function SinglePlayPage() {
         onClose={hasCard && !cardState.isLoading ? handleCardViewClose : handleCardClose}
       />
 
-      {/* 对话层 */}
+      {/* 对话层 - V1.1 传递 word 上下文 */}
       <ChatBox
         isOpen={showChat}
         onClose={() => setShowChat(false)}
-        imageContext={cardDescription}
+        word={cardState.word || undefined}
         imageUrl={cardState.imageUrl || undefined}
         provider={provider}
       />
