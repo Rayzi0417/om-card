@@ -4,7 +4,7 @@ import { streamText } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
 import { checkRateLimit, CHAT_RATE_LIMIT, getClientIP } from '@/lib/utils/rate-limit';
-import { getCounselorPromptV2, getCounselorPrompt } from '@/lib/prompts/counselor';
+import { getCounselorPromptV2 } from '@/lib/prompts/counselor';
 import type { AIProvider, ChatMessage, WordCard } from '@/types';
 
 // Google AI
@@ -32,8 +32,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const messages: ChatMessage[] = body.messages || [];
-    const word: WordCard | undefined = body.word;           // V1.1: 文字卡
-    const imageContext: string | undefined = body.imageContext;  // 兼容旧版
+    const word: WordCard | undefined = body.word;
     const provider: AIProvider = body.provider || 'doubao';
 
     if (messages.length === 0) {
@@ -43,10 +42,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // V1.1: 使用新的洁净语言 Prompt，优先使用 word
-    const systemPrompt = word 
-      ? getCounselorPromptV2(word)
-      : getCounselorPrompt(imageContext);
+    // V1.2: 计算当前对话轮次（用户消息数量）
+    const currentTurnCount = messages.filter(m => m.role === 'user').length;
+
+    // V1.2: 使用弹性会话管理 Prompt，传递轮次信息
+    const systemPrompt = getCounselorPromptV2(word, currentTurnCount);
 
     // 选择模型（默认豆包）
     const model = provider === 'google' 

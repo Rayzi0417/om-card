@@ -164,8 +164,6 @@ export default function SinglePlayPage() {
           <SettingsDrawer 
             provider={provider}
             onProviderChange={setProvider}
-            deckStyle={deckStyle}
-            onDeckStyleChange={setDeckStyle}
           />
         </motion.div>
       </header>
@@ -180,7 +178,7 @@ export default function SinglePlayPage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="flex flex-col items-center gap-8"
+              className="flex flex-col items-center gap-6"
             >
               <BreathingRing
                 isLoading={cardState.isLoading}
@@ -197,6 +195,39 @@ export default function SinglePlayPage() {
                   ? '静心感应...' 
                   : '点击圆环，让潜意识为你选择一张卡牌'}
               </motion.p>
+              
+              {/* 卡组切换器 */}
+              {!cardState.isLoading && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                  className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 border border-white/10"
+                >
+                  <span className="text-xs text-[#8b8b9e]">卡组</span>
+                  <div className="w-px h-4 bg-white/10" />
+                  <button
+                    onClick={() => setDeckStyle('abstract')}
+                    className={`px-3 py-1 rounded-full text-xs transition-all ${
+                      deckStyle === 'abstract'
+                        ? 'bg-[#c9a959]/20 text-[#c9a959]'
+                        : 'text-[#8b8b9e] hover:text-[#edf2f4]'
+                    }`}
+                  >
+                    抽象
+                  </button>
+                  <button
+                    onClick={() => setDeckStyle('figurative')}
+                    className={`px-3 py-1 rounded-full text-xs transition-all ${
+                      deckStyle === 'figurative'
+                        ? 'bg-[#c9a959]/20 text-[#c9a959]'
+                        : 'text-[#8b8b9e] hover:text-[#edf2f4]'
+                    }`}
+                  >
+                    具象
+                  </button>
+                </motion.div>
+              )}
             </motion.div>
           ) : (
             // 已抽牌状态：显示复合卡牌缩略图

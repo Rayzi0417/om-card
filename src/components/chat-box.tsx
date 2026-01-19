@@ -226,16 +226,13 @@ export function ChatBox({
             {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
               <div className="flex justify-start">
                 <div className="bg-white/5 border border-white/10 px-4 py-3 rounded-2xl rounded-bl-md">
-                  <div className="flex gap-1">
-                    {[0, 1, 2].map((i) => (
-                      <motion.div
-                        key={i}
-                        className="w-2 h-2 bg-[#c9a959] rounded-full"
-                        animate={{ opacity: [0.3, 1, 0.3] }}
-                        transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-                      />
-                    ))}
-                  </div>
+                  <motion.p 
+                    className="text-sm text-[#8b8b9e] italic"
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    Om 正在感受...
+                  </motion.p>
                 </div>
               </div>
             )}
