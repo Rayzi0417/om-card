@@ -10,7 +10,7 @@ import type { AIProvider } from '@/types';
  * Om Card 首页 - 玩法选择
  */
 export default function Home() {
-  const [provider, setProvider] = useState<AIProvider>('google');
+  const [provider, setProvider] = useState<AIProvider>('doubao');
 
   return (
     <main className="relative min-h-dvh om-gradient-bg om-stars overflow-hidden">
@@ -53,9 +53,9 @@ export default function Home() {
           className="max-w-md mx-auto"
         >
           <div className="text-center mb-8">
-            {/* 装饰性图标 */}
+            {/* 装饰性图标 - 水晶球/镜子意象 */}
             <motion.div
-              className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#c9a959]/20 to-[#c9a959]/5 flex items-center justify-center"
+              className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#c9a959]/20 to-[#c9a959]/5 flex items-center justify-center border border-[#c9a959]/20"
               animate={{ 
                 boxShadow: [
                   '0 0 20px rgba(201, 169, 89, 0.1)',
@@ -63,9 +63,14 @@ export default function Home() {
                   '0 0 20px rgba(201, 169, 89, 0.1)',
                 ]
               }}
-              transition={{ duration: 3, repeat: Infinity }}
+              transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY }}
             >
-              <span className="text-2xl">☯</span>
+              <svg className="w-8 h-8 text-[#c9a959]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                {/* 简约的镜子/窗户图标 */}
+                <rect x="4" y="4" width="16" height="16" rx="2" />
+                <line x1="12" y1="4" x2="12" y2="20" />
+                <line x1="4" y1="12" x2="20" y2="12" />
+              </svg>
             </motion.div>
             
             <h2 className="text-lg text-[#edf2f4] font-serif mb-2">

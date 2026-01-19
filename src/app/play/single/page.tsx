@@ -17,7 +17,7 @@ import type { AIProvider, CardStateV2, DrawResponseV2 } from '@/types';
  */
 export default function SinglePlayPage() {
   // 状态管理
-  const [provider, setProvider] = useState<AIProvider>('google');
+  const [provider, setProvider] = useState<AIProvider>('doubao');
   const [cardState, setCardState] = useState<CardStateV2>({
     isLoading: false,
     cardId: null,
