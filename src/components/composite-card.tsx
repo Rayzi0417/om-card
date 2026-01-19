@@ -74,7 +74,7 @@ export function CompositeCard({
           {wordText}
         </span>
         
-        {/* 左侧文字 (从下往上读) */}
+        {/* 左侧文字 (从下往上读) - iOS Safari 兼容 */}
         <div 
           className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center justify-center"
         >
@@ -83,14 +83,16 @@ export function CompositeCard({
             style={{ 
               fontFamily: "'Cormorant Garamond', serif",
               writingMode: 'vertical-lr',
-              transform: 'rotate(180deg)'
+              WebkitWritingMode: 'vertical-lr',
+              transform: 'rotate(180deg)',
+              WebkitTransform: 'rotate(180deg)'
             }}
           >
             {wordText}
           </span>
         </div>
         
-        {/* 右侧文字 (从上往下读) */}
+        {/* 右侧文字 (从上往下读) - iOS Safari 兼容 */}
         <div 
           className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center"
         >
@@ -98,7 +100,8 @@ export function CompositeCard({
             className="text-[#2c2c2c] font-serif text-xs tracking-[0.2em] font-medium select-none whitespace-nowrap"
             style={{ 
               fontFamily: "'Cormorant Garamond', serif",
-              writingMode: 'vertical-lr'
+              writingMode: 'vertical-lr',
+              WebkitWritingMode: 'vertical-lr'
             }}
           >
             {wordText}
@@ -122,7 +125,7 @@ export function CompositeCard({
               <motion.div
                 className="w-12 h-12 border-2 border-[#c9a959]/40 border-t-[#c9a959] rounded-full"
                 animate={{ rotate: 360 }}
-                transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
+                transition={{ duration: 1.2, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
               />
             </motion.div>
           ) : imageUrl ? (
