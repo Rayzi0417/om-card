@@ -74,32 +74,36 @@ export function CompositeCard({
           {wordText}
         </span>
         
-        {/* 左侧文字 (顺时针旋转90°) */}
-        <span 
-          className="absolute left-3 top-1/2 -translate-y-1/2
-                     text-[#2c2c2c] font-serif text-sm tracking-[0.3em] font-medium
-                     select-none origin-center"
-          style={{ 
-            fontFamily: "'Cormorant Garamond', serif",
-            writingMode: 'vertical-rl',
-            transform: 'translateY(-50%) rotate(180deg)'
-          }}
+        {/* 左侧文字 (从下往上读) */}
+        <div 
+          className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center justify-center"
         >
-          {wordText}
-        </span>
+          <span 
+            className="text-[#2c2c2c] font-serif text-xs tracking-[0.2em] font-medium select-none whitespace-nowrap"
+            style={{ 
+              fontFamily: "'Cormorant Garamond', serif",
+              writingMode: 'vertical-lr',
+              transform: 'rotate(180deg)'
+            }}
+          >
+            {wordText}
+          </span>
+        </div>
         
-        {/* 右侧文字 (逆时针旋转90°) */}
-        <span 
-          className="absolute right-3 top-1/2 -translate-y-1/2
-                     text-[#2c2c2c] font-serif text-sm tracking-[0.3em] font-medium
-                     select-none"
-          style={{ 
-            fontFamily: "'Cormorant Garamond', serif",
-            writingMode: 'vertical-rl'
-          }}
+        {/* 右侧文字 (从上往下读) */}
+        <div 
+          className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center"
         >
-          {wordText}
-        </span>
+          <span 
+            className="text-[#2c2c2c] font-serif text-xs tracking-[0.2em] font-medium select-none whitespace-nowrap"
+            style={{ 
+              fontFamily: "'Cormorant Garamond', serif",
+              writingMode: 'vertical-lr'
+            }}
+          >
+            {wordText}
+          </span>
+        </div>
         
         {/* 中央图像区域 */}
         <div 

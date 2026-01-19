@@ -154,9 +154,6 @@ export function ChatBox({ isOpen, onClose, imageContext, imageUrl, provider }: C
               >
                 <img src={imageUrl} alt="卡牌" className="w-full h-full object-cover" />
               </div>
-              {imageContext && (
-                <p className="text-center text-sm text-[#8b8b9e] mt-4">{imageContext}</p>
-              )}
             </motion.div>
           )}
         </div>
