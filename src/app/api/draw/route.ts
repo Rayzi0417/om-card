@@ -1,10 +1,10 @@
-// POST /api/draw - 生成卡牌图片
+// POST /api/draw - V1.1 复合卡牌生成
 import { NextRequest, NextResponse } from 'next/server';
-import { drawCard } from '@/lib/prompts/generator';
+import { drawCardV2 } from '@/lib/prompts/generator';
 import { checkRateLimit, DRAW_RATE_LIMIT, getClientIP } from '@/lib/utils/rate-limit';
 import { generateImageWithGoogle } from '@/lib/ai-service/google';
 import { generateImageWithDoubao } from '@/lib/ai-service/doubao';
-import type { AIProvider, DrawResponse } from '@/types';
+import type { AIProvider, DrawResponseV2 } from '@/types';
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,18 +40,21 @@ export async function POST(request: NextRequest) {
       // 使用默认 provider
     }
 
-    // 生成随机卡牌数据
-    const cardData = drawCard();
-    console.log('Drawing card:', cardData.archetype, cardData.atmosphere);
+    // V1.1: 使用双随机池生成卡牌数据
+    const cardData = drawCardV2();
+    console.log('Drawing V1.1 card:', {
+      word: cardData.word.en,
+      keywords: cardData.promptKeywords
+    });
 
-    // 调用 AI 生成图片
+    // 调用 AI 生成模糊内图
     let imageUrl: string;
     
     try {
       if (provider === 'doubao') {
-        imageUrl = await generateImageWithDoubao(cardData.prompt);
+        imageUrl = await generateImageWithDoubao(cardData.imagePrompt);
       } else {
-        imageUrl = await generateImageWithGoogle(cardData.prompt);
+        imageUrl = await generateImageWithGoogle(cardData.imagePrompt);
       }
     } catch (error) {
       console.error('Image generation error:', error);
@@ -61,11 +64,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const response: DrawResponse = {
+    // V1.1: 新的响应结构
+    const response: DrawResponseV2 = {
+      cardId: crypto.randomUUID(),
+      word: cardData.word,
       imageUrl,
-      prompt: cardData.description,
-      archetype: cardData.archetype,
-      atmosphere: cardData.atmosphere
+      promptKeywords: cardData.promptKeywords
     };
 
     return NextResponse.json(response, {

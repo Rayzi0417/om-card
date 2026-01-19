@@ -4,33 +4,36 @@ import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { BreathingRing } from '@/components/breathing-ring';
-import { CardView } from '@/components/card-view';
+import { CardViewV2 } from '@/components/card-view';
+import { CompositeCard } from '@/components/composite-card';
 import { ChatBox } from '@/components/chat-box';
 import { SettingsDrawer } from '@/components/settings-drawer';
-import type { AIProvider, CardState } from '@/types';
+import type { AIProvider, CardStateV2, DrawResponseV2 } from '@/types';
 
 export default function Home() {
-  // 状态管理
+  // 状态管理 - V1.1
   const [provider, setProvider] = useState<AIProvider>('google');
-  const [cardState, setCardState] = useState<CardState>({
+  const [cardState, setCardState] = useState<CardStateV2>({
     isLoading: false,
+    cardId: null,
+    word: null,
     imageUrl: null,
-    archetype: null,
-    atmosphere: null,
+    promptKeywords: [],
     error: null,
   });
   const [showCard, setShowCard] = useState(false);
   const [showChat, setShowChat] = useState(false);
 
-  // 抽牌逻辑
+  // V1.1 抽牌逻辑
   const handleDraw = useCallback(async () => {
     // 如果已经有卡牌，先重置
     if (cardState.imageUrl) {
       setCardState({
         isLoading: false,
+        cardId: null,
+        word: null,
         imageUrl: null,
-        archetype: null,
-        atmosphere: null,
+        promptKeywords: [],
         error: null,
       });
       setShowChat(false);
@@ -58,13 +61,14 @@ export default function Home() {
         throw new Error('生成失败');
       }
 
-      const data = await response.json();
+      const data: DrawResponseV2 = await response.json();
       
       setCardState({
         isLoading: false,
+        cardId: data.cardId,
+        word: data.word,
         imageUrl: data.imageUrl,
-        archetype: data.archetype,
-        atmosphere: data.atmosphere,
+        promptKeywords: data.promptKeywords,
         error: null,
       });
     } catch (error) {
@@ -83,7 +87,6 @@ export default function Home() {
   const handleCardClose = useCallback(() => {
     if (cardState.imageUrl && !cardState.isLoading) {
       setShowCard(false);
-      // 短暂延迟后打开对话
       setTimeout(() => setShowChat(true), 300);
     }
   }, [cardState.imageUrl, cardState.isLoading]);
@@ -104,20 +107,21 @@ export default function Home() {
     setShowCard(false);
     setCardState({
       isLoading: false,
+      cardId: null,
+      word: null,
       imageUrl: null,
-      archetype: null,
-      atmosphere: null,
+      promptKeywords: [],
       error: null,
     });
   }, []);
 
-  // 获取卡牌描述（用于 AI 上下文）
-  const cardDescription = cardState.archetype && cardState.atmosphere
-    ? `一幅${cardState.atmosphere}「${cardState.archetype}」的水彩画`
+  // V1.1: 卡牌描述（用于 AI 上下文）
+  const cardDescription = cardState.word && cardState.promptKeywords.length > 0
+    ? `文字「${cardState.word.cn}/${cardState.word.en}」配合一幅${cardState.promptKeywords.join('、')}意象的画面`
     : undefined;
 
-  // 是否已有卡牌（用于判断显示状态）
-  const hasCard = !!cardState.imageUrl;
+  // 是否已有卡牌
+  const hasCard = !!cardState.imageUrl && !!cardState.word;
 
   return (
     <main className="relative min-h-dvh om-gradient-bg om-stars overflow-hidden">
@@ -176,7 +180,7 @@ export default function Home() {
               </motion.p>
             </motion.div>
           ) : (
-            // 已抽牌状态：显示卡牌预览
+            // 已抽牌状态：显示复合卡牌缩略图
             <motion.div
               key="card-preview"
               initial={{ opacity: 0 }}
@@ -184,21 +188,29 @@ export default function Home() {
               exit={{ opacity: 0 }}
               className="flex flex-col items-center gap-4"
             >
-              {/* 卡牌预览 */}
+              {/* V1.1 复合卡牌预览 */}
               <motion.div
-                className="w-32 h-44 rounded-xl overflow-hidden om-card cursor-pointer shadow-2xl"
+                className="w-36 cursor-pointer"
                 onClick={handleViewCard}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <img 
-                  src={cardState.imageUrl!} 
-                  alt="当前卡牌"
-                  className="w-full h-full object-cover"
+                <CompositeCard
+                  word={cardState.word!}
+                  imageUrl={cardState.imageUrl}
                 />
               </motion.div>
-              <p className="text-[#8b8b9e] text-xs">{cardDescription}</p>
-              <p className="text-[#c9a959] text-xs">点击卡牌放大查看</p>
+              
+              {/* 文字提示 */}
+              <div className="text-center">
+                <p className="text-[#c9a959] text-sm font-serif">
+                  {cardState.word?.cn}
+                </p>
+                <p className="text-[#8b8b9e] text-xs mt-1">
+                  {cardState.word?.en}
+                </p>
+              </div>
+              <p className="text-[#8b8b9e]/60 text-xs">点击卡牌放大查看</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -228,15 +240,15 @@ export default function Home() {
         </motion.div>
       )}
 
-      {/* 卡牌展示层 */}
-      <CardView
+      {/* V1.1 卡牌展示层 */}
+      <CardViewV2
+        word={showCard ? cardState.word : null}
         imageUrl={showCard ? cardState.imageUrl : null}
         isLoading={cardState.isLoading}
-        description={cardDescription}
         onClose={hasCard && !cardState.isLoading ? handleCardViewClose : handleCardClose}
       />
 
-      {/* 对话层 */}
+      {/* 对话层 - V1.1 传递 word 上下文 */}
       <ChatBox
         isOpen={showChat}
         onClose={() => setShowChat(false)}
