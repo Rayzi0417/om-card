@@ -90,10 +90,10 @@ export function checkRateLimit(
 
 /**
  * 生图 API 的默认限制配置
- * 每分钟 3 次
+ * 每分钟 5 次
  */
 export const DRAW_RATE_LIMIT: RateLimitConfig = {
-  maxRequests: 3,
+  maxRequests: 5,
   windowMs: 60 * 1000 // 1 分钟
 };
 

@@ -1,7 +1,20 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+
+// 诗意加载文案
+const LOADING_MESSAGES = [
+  '正在潜意识海洋中打捞...',
+  '让星光为你指引方向...',
+  '聆听内心深处的回响...',
+  '梦境正在缓缓成形...',
+  '意象从迷雾中浮现...',
+  '水彩在纸上蔓延流淌...',
+  '时光在这一刻静止...',
+  '让心灵找到它的画面...',
+];
 
 interface CardViewProps {
   imageUrl: string | null;
@@ -11,6 +24,25 @@ interface CardViewProps {
 }
 
 export function CardView({ imageUrl, isLoading, description, onClose }: CardViewProps) {
+  // 加载文案轮播
+  const [messageIndex, setMessageIndex] = useState(0);
+  
+  useEffect(() => {
+    if (!isLoading) {
+      setMessageIndex(0);
+      return;
+    }
+    
+    // 随机初始文案
+    setMessageIndex(Math.floor(Math.random() * LOADING_MESSAGES.length));
+    
+    // 每 2.5 秒切换一次文案
+    const interval = setInterval(() => {
+      setMessageIndex(prev => (prev + 1) % LOADING_MESSAGES.length);
+    }, 2500);
+    
+    return () => clearInterval(interval);
+  }, [isLoading]);
   return (
     <AnimatePresence mode="wait">
       {(isLoading || imageUrl) && (
@@ -37,23 +69,39 @@ export function CardView({ imageUrl, isLoading, description, onClose }: CardView
           >
             {isLoading ? (
               // 加载骨架屏
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6">
                 <motion.div
                   className="w-16 h-16 border-2 border-[#c9a959] border-t-transparent rounded-full"
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                 />
+                
+                {/* 诗意文案轮播 */}
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={messageIndex}
+                    className="text-[#c9a959]/80 text-sm text-center font-serif"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    {LOADING_MESSAGES[messageIndex]}
+                  </motion.p>
+                </AnimatePresence>
+                
+                {/* 进度提示 */}
                 <motion.p
-                  className="text-[#8b8b9e] text-sm"
-                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  className="text-[#8b8b9e]/50 text-xs mt-2"
+                  animate={{ opacity: [0.3, 0.6, 0.3] }}
                   transition={{ duration: 2, repeat: Infinity }}
                 >
-                  卡牌正在显现...
+                  大约需要 5-8 秒
                 </motion.p>
                 
                 {/* 装饰性光效 */}
                 <motion.div
-                  className="absolute inset-0 opacity-20"
+                  className="absolute inset-0 opacity-20 pointer-events-none"
                   style={{
                     background: 'radial-gradient(circle at center, rgba(201, 169, 89, 0.3) 0%, transparent 70%)'
                   }}
