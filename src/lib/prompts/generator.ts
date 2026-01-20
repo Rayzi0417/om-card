@@ -176,39 +176,38 @@ const abstractAtmospheres: string[] = [
 
 const abstractPromptTemplate = "A specialized therapeutic art texture. Abstract watercolor wash, indistinct shapes suggesting {archetype}, misty {atmosphere} atmosphere, {colorPalette}. Full bleed composition filling entire canvas, no borders, no margins, no text, no sharp details. Style: naive art, Rorschach inkblot test aesthetic, soft blurred edges, dreamlike and ambiguous.";
 
-// ============== 具象卡组 V2 (Figurative Deck - OH Card Style) ==============
+// ============== 具象卡组 V3 (Figurative Deck - David Hockney Style) ==============
+// 明亮、鲜艳、阳光、扁平化 - 告别阴郁，拥抱阳光！
 
-// 风格修饰词 - Ely Raman OH卡美学
+// 风格修饰词 - David Hockney 美学
 const styleModifiers: string[] = [
-  "naive watercolor style",
-  "Ely Raman aesthetic",
-  "loose brushwork",
-  "wet-on-wet technique",
-  "muted earth tones",
-  "psychological projection art",
-  "dreamlike atmosphere",
-  "minimalist composition",
-  "ambiguous narrative",
-  "soft edges",
-  "figurative but indistinct"
+  "David Hockney style",
+  "naive art aesthetic",
+  "vibrant acrylic colors",
+  "flat perspective",
+  "clear afternoon lighting",
+  "playful composition",
+  "pop art influence",
+  "sunny and airy",
+  "clean lines",
+  "pastel and bright tones"
 ];
 
-// 负面提示词 - 防止生成文字和过度清晰
+// 负面提示词 - 防止阴暗恐怖画面
 const figurativeNegativePrompts: string[] = [
-  "text", "words", "letters", "signature", "watermark",
-  "photorealistic", "highly detailed", "sharp focus", "HD", "4k", "8k",
-  "cartoon", "anime", "manga", "3d render", "cgi",
-  "bright neon colors", "complex background", "cluttered", "facial features", "clear eyes"
+  "text", "words", "letters", "signature",
+  "dark", "horror", "scary", "creepy", "ghostly", "shadows", "nightmare", "gothic", "grim",
+  "photorealistic", "highly detailed", "complex", "cluttered",
+  "blur", "foggy", "murky", "muddy colors"
 ];
 
-// 氛围词库
+// 氛围词库 - 阳光明媚
 const figurativeAtmospheres: string[] = [
-  "misty", "twilight", "dawn", "gloomy", "sunny but cold",
-  "silent", "chaotic", "peaceful", "melancholic", "dreamy",
-  "hazy", "ethereal"
+  "sunny", "breezy", "clear", "warm", "peaceful",
+  "vibrant", "calm", "fresh", "stark but bright", "playful"
 ];
 
-// 原型模板 - 三种类别
+// 原型模板 - 三种类别 (David Hockney 风格)
 interface ArchetypeTemplate {
   category: string;
   template: string;
@@ -216,104 +215,54 @@ interface ArchetypeTemplate {
 
 const archetypeTemplates: ArchetypeTemplate[] = [
   {
-    category: "Interpersonal & Conflict",
-    template: "A watercolor painting of [Subject], focusing on body language and silhouette, faceless figures, ambiguous relationship, soft edges, [Atmosphere] background."
+    category: "Bright Isolation",
+    template: "A painting in David Hockney style of [Subject], vibrant colors, flat perspective, sunny atmosphere, simple and clean composition."
   },
   {
-    category: "Metaphorical Object",
-    template: "A watercolor painting of a single [Subject], isolated in a [Atmosphere] setting, symbolic meaning, simple composition, loose strokes."
+    category: "Everyday Metaphor",
+    template: "A naive art painting of [Subject], clear lighting, distinct shapes, bright blue and green tones, peaceful but provocative."
   },
   {
-    category: "Life Scene & Narrative",
-    template: "A watercolor painting of [Subject], capturing a moment of everyday life but with a dreamlike twist, soft colors, evocative and open-ended."
+    category: "Relational Space",
+    template: "A colorful painting depicting [Subject], emphasizing the space between objects, flat colors, minimalism, emotional resonance without darkness."
   }
 ];
 
-// 主题库 - 60+ 经典OH卡意象
+// 主题库 - 明亮生活化意象 (告别鬼影！)
 const subjects: string[] = [
-  // 1. 人际与关系 (The Social Self) - 15个
-  "two people sitting back to back",
-  "a figure standing alone in a crowd",
-  "a handshake between strangers",
-  "a person curling up on the floor",
-  "a parent holding a child",
-  "someone pointing a finger",
-  "a group circle holding hands",
-  "a person looking into a mirror",
-  "shadows of people on a wall",
-  "a figure walking away into the distance",
-  "two faces close together but not touching",
-  "a person hiding behind a mask",
-  "two hands almost touching",
-  "a figure embracing their own shadow",
-  "someone reaching out from darkness",
-  
-  // 2. 障碍与突破 (Obstacles & Breakthroughs) - 12个
-  "a closed heavy door",
-  "a key lying on the ground",
-  "a ladder reaching into clouds",
-  "a brick wall with a crack of light",
-  "a knotted rope",
-  "a bird flying out of a cage",
-  "a crossroads with multiple signs",
-  "a bridge that ends in mid-air",
-  "a person climbing a steep hill",
-  "a light at the end of a tunnel",
-  "broken chains on the ground",
-  "a fence with a hole in it",
-  
-  // 3. 情绪隐喻 (Emotional Metaphors) - 15个
-  "a storm gathering over a small house",
-  "a calm lake with perfect reflection",
-  "a withered tree in winter",
-  "a sprouting seed in dry cracked soil",
-  "a burning candle in darkness",
-  "spilled water on a table",
-  "a heavy stone being carried",
-  "floating feathers in the wind",
-  "a dark cave entrance",
-  "sunlight breaking through storm clouds",
-  "a tangled ball of yarn",
-  "a wilting flower in a vase",
-  "tears falling into water",
-  "a heart-shaped lock",
-  "flames consuming paper",
-  
-  // 4. 日常生活场景 (Everyday Ambiguity) - 12个
-  "an empty chair in a sunlit room",
-  "a table set for one person",
-  "a bed with messy tangled sheets",
-  "a window looking out at falling rain",
-  "a packed suitcase by the door",
-  "an old phone off the hook",
-  "footprints fading in wet sand",
-  "an unopened letter on a table",
-  "an open book with blank pages",
-  "shoes left abandoned on a path",
-  "a half-drunk cup of coffee",
-  "clothes hanging on a line",
-  
-  // 5. 抽象与超现实 (Surreal Elements) - 10个
-  "a hand reaching down from the sky",
-  "a clock with melting numbers",
-  "a figure merging with a tree",
-  "stairs leading into clouds",
-  "a giant eye watching from above",
-  "a small house floating on still water",
-  "a puzzle with missing pieces",
-  "a maze seen from high above",
-  "a person with butterfly wings",
-  "roots growing from a human heart",
-  
-  // 6. 自然力量 (Forces of Nature) - 8个
-  "a single tree bending in strong wind",
-  "waves crashing on empty shore",
-  "a mountain peak hidden in fog",
-  "a river splitting into two paths",
-  "rain falling on a still pond",
-  "a sunrise over dark mountains",
-  "lightning striking a lone tree",
-  "snow covering everything in white"
+  // 1. 人像 (更自然，少鬼影)
+  "a person sitting by a blue swimming pool",
+  "two chairs on a green lawn",
+  "a figure looking out a bright window",
+  "a back view of someone walking on a red road",
+  "two people sitting far apart on a yellow bench",
+  "a diver jumping into water",
+  "a person reading in a sunlit room",
+  "crowd of colorful dots representing people",
+  "a hand holding a bright flower",
+
+  // 2. 物品与隐喻 (生活化、波普化)
+  "a bright red key on a blue table",
+  "an open door leading to a green garden",
+  "a vase with one yellow tulip",
+  "a colorful ladder leaning against a wall",
+  "a pair of glasses on a desk",
+  "a neatly made bed",
+  "a bird cage with the door open",
+  "a jigsaw puzzle on the floor",
+  "a telephone on a side table",
+  "a raincoat hanging on a hook",
+
+  // 3. 自然与场景 (风景明信片感)
+  "a road disappearing into bright hills",
+  "a single tree with green leaves",
+  "a bridge over calm blue water",
+  "white clouds in a clear sky",
+  "a path through a colorful forest",
+  "a house with a red roof",
+  "a crossroads under the sun",
+  "waves crashing on a yellow beach",
+  "a mountain peak in pink light"
 ];
 
 /**
