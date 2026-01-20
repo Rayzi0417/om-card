@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Clock, User, Sparkles, Map, Infinity } from 'lucide-react';
+import { Clock, User, Sparkles, Map, Infinity, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
 interface PlayMode {
@@ -26,6 +26,19 @@ const PLAY_MODES: PlayMode[] = [
     ],
     status: 'active',
     href: '/play/single',
+  },
+  {
+    id: 'flip',
+    title: '舒服区与不舒服区',
+    subtitle: 'The Paradox Flip',
+    description: '二元对立整合。打破惯性，在不舒服中寻找资源。',
+    tags: [
+      { icon: <User className="w-3 h-3" />, text: '1人' },
+      { icon: <RefreshCw className="w-3 h-3" />, text: '3选2' },
+      { icon: <Clock className="w-3 h-3" />, text: '深度整合' },
+    ],
+    status: 'active',
+    href: '/play/flip',
   },
   {
     id: 'journey',

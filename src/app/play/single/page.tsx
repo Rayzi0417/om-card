@@ -3,13 +3,14 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Camera } from 'lucide-react';
 import Link from 'next/link';
 import { BreathingRing } from '@/components/breathing-ring';
 import { CardViewV2 } from '@/components/card-view';
 import { CompositeCard } from '@/components/composite-card';
 import { ChatBox } from '@/components/chat-box';
 import { SettingsDrawer } from '@/components/settings-drawer';
+import { SavePreviewModal } from '@/components/save-preview-modal';
 import type { AIProvider, DeckStyle, CardStateV2, DrawResponseV2 } from '@/types';
 
 /**
@@ -29,6 +30,16 @@ export default function SinglePlayPage() {
   });
   const [showCard, setShowCard] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  
+  // 保存卡片功能 - 使用 Canvas 绘制
+  const [saveState, setSaveState] = useState<{
+    isGenerating: boolean;
+    previewUrl: string | null;
+  }>({ isGenerating: false, previewUrl: null });
+
+  const clearPreview = useCallback(() => {
+    setSaveState({ isGenerating: false, previewUrl: null });
+  }, []);
 
   // 抽牌逻辑
   const handleDraw = useCallback(async () => {
@@ -121,6 +132,151 @@ export default function SinglePlayPage() {
     });
   }, []);
 
+  // 切换卡组（自动重置当前卡牌）
+  const handleDeckChange = useCallback((newDeck: DeckStyle) => {
+    if (newDeck !== deckStyle) {
+      setDeckStyle(newDeck);
+      // 如果已有卡牌，自动重置
+      if (cardState.imageUrl) {
+        setShowChat(false);
+        setShowCard(false);
+        setCardState({
+          isLoading: false,
+          cardId: null,
+          word: null,
+          imageUrl: null,
+          promptKeywords: [],
+          error: null,
+        });
+        toast.success(`已切换到${newDeck === 'classic' ? '经典' : newDeck === 'abstract' ? '抽象' : '具象'}卡组`);
+      }
+    }
+  }, [deckStyle, cardState.imageUrl]);
+
+  // 保存卡片 - 使用 Canvas 绘制
+  const saveCard = useCallback(async () => {
+    if (!cardState.imageUrl || !cardState.word) {
+      toast.error('没有可保存的卡牌');
+      return;
+    }
+
+    setSaveState({ isGenerating: true, previewUrl: null });
+    toast.loading('正在生成图片...', { id: 'saving' });
+
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas not supported');
+
+      // 设置画布尺寸
+      canvas.width = 320;
+      canvas.height = 480;
+
+      // 绘制背景渐变
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, '#1a1a2e');
+      gradient.addColorStop(1, '#0f0f23');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 绘制装饰边框
+      ctx.strokeStyle = 'rgba(201, 169, 89, 0.3)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(15, 15, canvas.width - 30, canvas.height - 30);
+
+      // 绘制标题
+      ctx.fillStyle = '#c9a959';
+      ctx.font = 'bold 18px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('当下映照', canvas.width / 2, 45);
+
+      ctx.fillStyle = '#8b8b9e';
+      ctx.font = '11px sans-serif';
+      ctx.fillText('The Daily Mirror', canvas.width / 2, 62);
+
+      // 加载并绘制卡片图片
+      const loadImg = (src: string): Promise<HTMLImageElement> => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          // 只有外部 http URL 才需要设置 crossOrigin
+          // base64 和本地图片不需要
+          if (src.startsWith('http') && !src.startsWith(window.location.origin)) {
+            img.crossOrigin = 'anonymous';
+          }
+          img.onload = () => resolve(img);
+          img.onerror = (e) => {
+            console.error('图片加载失败:', src.substring(0, 100), e);
+            reject(new Error('图片加载失败'));
+          };
+          img.src = src;
+        });
+      };
+
+      const getFullImageUrl = (path: string) => {
+        // base64 图片直接返回
+        if (path.startsWith('data:')) return path;
+        // 完整 URL 直接返回
+        if (path.startsWith('http')) return path;
+        // 本地路径拼接 origin
+        return `${window.location.origin}${path}`;
+      };
+
+      // 绘制卡片
+      const cardX = 60;
+      const cardY = 85;
+      const cardWidth = 200;
+      const cardHeight = 260;
+
+      // 卡片背景
+      ctx.fillStyle = '#faf8f5';
+      ctx.beginPath();
+      ctx.roundRect(cardX, cardY, cardWidth, cardHeight, 12);
+      ctx.fill();
+
+      // 绘制图片
+      try {
+        const img = await loadImg(getFullImageUrl(cardState.imageUrl));
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(cardX + 10, cardY + 10, cardWidth - 20, cardHeight - 60, 8);
+        ctx.clip();
+        ctx.drawImage(img, cardX + 10, cardY + 10, cardWidth - 20, cardHeight - 60);
+        ctx.restore();
+      } catch (error) {
+        console.error('绘制图片失败:', error);
+        ctx.fillStyle = '#e8e4df';
+        ctx.fillRect(cardX + 10, cardY + 10, cardWidth - 20, cardHeight - 60);
+        ctx.fillStyle = '#8b8b9e';
+        ctx.font = '12px sans-serif';
+        ctx.fillText('图片', cardX + cardWidth / 2, cardY + (cardHeight - 60) / 2 + 10);
+      }
+
+      // 绘制文字
+      ctx.fillStyle = '#2a2a3e';
+      ctx.font = 'bold 16px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(cardState.word.cn, cardX + cardWidth / 2, cardY + cardHeight - 25);
+
+      ctx.fillStyle = '#8b7355';
+      ctx.font = '11px sans-serif';
+      ctx.fillText(cardState.word.en, cardX + cardWidth / 2, cardY + cardHeight - 8);
+
+      // 绘制底部信息
+      ctx.fillStyle = '#c9a959';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`Om Card · ${new Date().toLocaleDateString('zh-CN')}`, canvas.width / 2, canvas.height - 25);
+
+      const dataUrl = canvas.toDataURL('image/png');
+      setSaveState({ isGenerating: false, previewUrl: dataUrl });
+      toast.success('图片已生成！', { id: 'saving' });
+    } catch (err) {
+      console.error('生成图片失败:', err);
+      setSaveState({ isGenerating: false, previewUrl: null });
+      toast.error('生成图片失败，请重试', { id: 'saving' });
+    }
+  }, [cardState.imageUrl, cardState.word]);
+
   // 卡牌描述（用于 AI 上下文）
   const cardDescription = cardState.word && cardState.promptKeywords.length > 0
     ? `文字「${cardState.word.cn}/${cardState.word.en}」配合一幅${cardState.promptKeywords.join('、')}意象的画面`
@@ -202,12 +358,22 @@ export default function SinglePlayPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.6 }}
-                  className="flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 border border-white/10"
+                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10"
                 >
                   <span className="text-xs text-[#8b8b9e]">卡组</span>
                   <div className="w-px h-4 bg-white/10" />
                   <button
-                    onClick={() => setDeckStyle('abstract')}
+                    onClick={() => handleDeckChange('classic')}
+                    className={`px-3 py-1 rounded-full text-xs transition-all ${
+                      deckStyle === 'classic'
+                        ? 'bg-[#c9a959]/20 text-[#c9a959]'
+                        : 'text-[#8b8b9e] hover:text-[#edf2f4]'
+                    }`}
+                  >
+                    经典
+                  </button>
+                  <button
+                    onClick={() => handleDeckChange('abstract')}
                     className={`px-3 py-1 rounded-full text-xs transition-all ${
                       deckStyle === 'abstract'
                         ? 'bg-[#c9a959]/20 text-[#c9a959]'
@@ -217,7 +383,7 @@ export default function SinglePlayPage() {
                     抽象
                   </button>
                   <button
-                    onClick={() => setDeckStyle('figurative')}
+                    onClick={() => handleDeckChange('figurative')}
                     className={`px-3 py-1 rounded-full text-xs transition-all ${
                       deckStyle === 'figurative'
                         ? 'bg-[#c9a959]/20 text-[#c9a959]'
@@ -276,9 +442,17 @@ export default function SinglePlayPage() {
           <div className="flex gap-3 max-w-md mx-auto">
             <button
               onClick={handleReset}
-              className="flex-1 py-3 rounded-full border border-white/10 text-[#8b8b9e] text-sm hover:border-[#c9a959]/30 hover:text-[#edf2f4] transition-colors"
+              className="py-3 px-4 rounded-full border border-white/10 text-[#8b8b9e] text-sm hover:border-[#c9a959]/30 hover:text-[#edf2f4] transition-colors"
             >
               重新抽牌
+            </button>
+            <button
+              onClick={saveCard}
+              disabled={saveState.isGenerating}
+              className="py-3 px-4 rounded-full border border-white/10 text-[#8b8b9e] text-sm hover:border-[#c9a959]/30 hover:text-[#edf2f4] transition-colors flex items-center gap-2"
+            >
+              <Camera className="w-4 h-4" />
+              {saveState.isGenerating ? '生成中...' : '保存'}
             </button>
             <button
               onClick={() => setShowChat(true)}
@@ -305,6 +479,14 @@ export default function SinglePlayPage() {
         word={cardState.word || undefined}
         imageUrl={cardState.imageUrl || undefined}
         provider={provider}
+      />
+
+      {/* 保存预览模态框 */}
+      <SavePreviewModal
+        isOpen={!!saveState.previewUrl}
+        imageUrl={saveState.previewUrl}
+        onClose={clearPreview}
+        title="保存卡片"
       />
 
       {/* 底部装饰 */}

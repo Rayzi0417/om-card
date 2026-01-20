@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, X } from 'lucide-react';
+import { Send, X, ZoomIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CompositeCard } from './composite-card';
 import type { AIProvider, WordCard } from '@/types';
@@ -37,6 +37,7 @@ export function ChatBox({
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);  // 图片放大预览状态
 
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
@@ -155,26 +156,40 @@ export function ChatBox({
         {/* 左侧：卡牌 */}
         <div className="flex-shrink-0 flex flex-col items-center justify-center p-6 md:w-1/2 md:h-full bg-gradient-to-b md:bg-gradient-to-r from-[#1a1a2e] to-[#0f0f23]">
           {word && imageUrl ? (
-            // V1.1: 显示复合卡牌
+            // V1.1: 显示复合卡牌（可点击放大）
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="w-48 md:w-56"
+              className="w-48 md:w-56 cursor-pointer relative group"
+              onClick={() => setPreviewOpen(true)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               <CompositeCard word={word} imageUrl={imageUrl} />
+              {/* 放大提示 */}
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl">
+                <ZoomIn className="w-8 h-8 text-white/80" />
+              </div>
             </motion.div>
           ) : imageUrl ? (
-            // 兼容旧版：只显示图片
+            // 兼容旧版：只显示图片（可点击放大）
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="relative"
+              className="relative cursor-pointer group"
+              onClick={() => setPreviewOpen(true)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               <div 
                 className="w-48 h-64 md:w-64 md:h-80 rounded-2xl overflow-hidden shadow-2xl border border-[#c9a959]/30"
                 style={{ boxShadow: '0 0 60px rgba(201, 169, 89, 0.2)' }}
               >
                 <img src={imageUrl} alt="卡牌" className="w-full h-full object-cover" />
+              </div>
+              {/* 放大提示 */}
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl">
+                <ZoomIn className="w-8 h-8 text-white/80" />
               </div>
             </motion.div>
           ) : null}
@@ -189,6 +204,7 @@ export function ChatBox({
             >
               <p className="text-[#c9a959] text-lg font-serif">{word.cn}</p>
               <p className="text-[#8b8b9e] text-xs mt-1">{word.en}</p>
+              <p className="text-[#8b8b9e]/60 text-xs mt-1">点击卡牌放大查看</p>
             </motion.div>
           )}
         </div>
@@ -263,6 +279,49 @@ export function ChatBox({
           </form>
         </div>
       </div>
+
+      {/* 卡牌放大预览模态框 */}
+      <AnimatePresence>
+        {previewOpen && imageUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4"
+            onClick={() => setPreviewOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="relative max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {word ? (
+                // V1.1: 放大的复合卡牌
+                <CompositeCard word={word} imageUrl={imageUrl} />
+              ) : (
+                // 兼容旧版：只显示放大图片
+                <div className="aspect-[3/4] rounded-2xl overflow-hidden shadow-2xl border border-[#c9a959]/30">
+                  <img src={imageUrl} alt="卡牌放大" className="w-full h-full object-cover" />
+                </div>
+              )}
+              
+              {/* 关闭按钮 */}
+              <button
+                onClick={() => setPreviewOpen(false)}
+                className="absolute -top-12 right-0 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+              >
+                <X className="w-6 h-6 text-white/80" />
+              </button>
+              
+              {/* 底部提示 */}
+              <p className="text-center text-[#8b8b9e] text-xs mt-4">点击空白处关闭</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

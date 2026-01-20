@@ -127,9 +127,70 @@ export function pickRandomWord(): WordCard {
   return { en: word.en, cn: word.cn };
 }
 
+// ============== 经典卡牌组 ==============
+// 88张原版 OH 卡图像，存放在 /cards/classic/ 目录
+// 注意：000.jpg 是卡牌背面，不参与抽取
+
+/**
+ * 获取经典卡牌（图片 + 随机文字）
+ * @param excludeIds - 要排除的卡牌ID（避免重复）
+ * @returns 卡牌数据
+ */
+export function getClassicCard(excludeIds: number[] = []): {
+  id: number;
+  imageUrl: string;
+  word: WordCard;
+} {
+  // 可用的卡牌ID范围：1-88（排除0空白卡和已使用的）
+  const availableIds = Array.from({ length: 88 }, (_, i) => i + 1)
+    .filter(id => !excludeIds.includes(id));
+  
+  if (availableIds.length === 0) {
+    // 如果没有可用的，重新从全部中选
+    const id = Math.floor(Math.random() * 88) + 1;
+    const word = words.find(w => w.id === id) || words[1];
+    return {
+      id,
+      imageUrl: `/cards/classic/${id}.jpg`,
+      word: { en: word.en, cn: word.cn }
+    };
+  }
+  
+  const id = availableIds[Math.floor(Math.random() * availableIds.length)];
+  const word = words.find(w => w.id === id) || words[1];
+  
+  return {
+    id,
+    imageUrl: `/cards/classic/${id}.jpg`,
+    word: { en: word.en, cn: word.cn }
+  };
+}
+
+/**
+ * 批量获取不重复的经典卡牌
+ * @param count - 需要的卡牌数量
+ * @returns 卡牌数组
+ */
+export function getClassicCards(count: number): Array<{
+  id: number;
+  imageUrl: string;
+  word: WordCard;
+}> {
+  const cards: Array<{ id: number; imageUrl: string; word: WordCard }> = [];
+  const usedIds: number[] = [];
+  
+  for (let i = 0; i < count; i++) {
+    const card = getClassicCard(usedIds);
+    cards.push(card);
+    usedIds.push(card.id);
+  }
+  
+  return cards;
+}
+
 // ============== 卡组类型 ==============
 
-export type DeckStyle = 'abstract' | 'figurative';
+export type DeckStyle = 'abstract' | 'figurative' | 'classic';
 
 // ============== 抽象卡组 (Abstract Deck) ==============
 
@@ -176,38 +237,47 @@ const abstractAtmospheres: string[] = [
 
 const abstractPromptTemplate = "A specialized therapeutic art texture. Abstract watercolor wash, indistinct shapes suggesting {archetype}, misty {atmosphere} atmosphere, {colorPalette}. Full bleed composition filling entire canvas, no borders, no margins, no text, no sharp details. Style: naive art, Rorschach inkblot test aesthetic, soft blurred edges, dreamlike and ambiguous.";
 
-// ============== 具象卡组 V3 (Figurative Deck - David Hockney Style) ==============
-// 明亮、鲜艳、阳光、扁平化 - 告别阴郁，拥抱阳光！
+// ============== 具象卡组 V7.1 (Figurative Deck - Masters Fusion Edition) ==============
+// 霍克尼 + 高更 + 杜飞 + 马蒂斯 四大师融合风格
+// 模糊五官但可辨认，色彩丰富，便于投射
 
-// 风格修饰词 - David Hockney 美学
+// 风格修饰词 - 四大师融合风格
 const styleModifiers: string[] = [
-  "David Hockney style",
-  "naive art aesthetic",
-  "vibrant acrylic colors",
-  "flat perspective",
-  "clear afternoon lighting",
-  "playful composition",
-  "pop art influence",
-  "sunny and airy",
-  "clean lines",
-  "pastel and bright tones"
+  "naive watercolor style",
+  "style of Raoul Dufy and Henri Matisse",
+  "Paul Gauguin color palette",
+  "David Hockney composition",
+  "visible brushstrokes",
+  "expressive colors",
+  "rough texture",
+  "psychological symbolism",
+  "loose wash",
+  "hand-painted aesthetic",
+  "blurred facial features",
+  "ambiguous expressions"
 ];
 
-// 负面提示词 - 防止阴暗恐怖画面
+// 负面提示词 - 禁止清晰表情、黑白、恐怖
 const figurativeNegativePrompts: string[] = [
-  "text", "words", "letters", "signature",
-  "dark", "horror", "scary", "creepy", "ghostly", "shadows", "nightmare", "gothic", "grim",
-  "photorealistic", "highly detailed", "complex", "cluttered",
-  "blur", "foggy", "murky", "muddy colors"
+  "text", "words", "photorealistic", "3d", "shiny",
+  "horror", "ghostly", "scary",
+  "overly dark", "black and white", "monochrome",
+  "low contrast", "muddy",
+  "detailed facial expression", "clear eyes", "distinct facial features",
+  "portrait photography", "hyperrealistic face"
 ];
 
-// 氛围词库 - 阳光明媚
+// 氛围词库 - 40% 暖/亮，40% 中性，20% 负面
 const figurativeAtmospheres: string[] = [
-  "sunny", "breezy", "clear", "warm", "peaceful",
-  "vibrant", "calm", "fresh", "stark but bright", "playful"
+  // 阳 (40%) - 暖色调氛围
+  "playful", "sunny", "calm", "peaceful", "vibrant", "warm",
+  // 中 (40%) - 中性色调氛围
+  "silent", "dreamy", "misty", "ambiguous", "hazy",
+  // 阴 (20%) - 用色彩表达负面情绪
+  "chaotic", "tense", "melancholic"
 ];
 
-// 原型模板 - 三种类别 (David Hockney 风格)
+// 原型模板 - 三种类别 (大师融合风格)
 interface ArchetypeTemplate {
   category: string;
   template: string;
@@ -215,54 +285,68 @@ interface ArchetypeTemplate {
 
 const archetypeTemplates: ArchetypeTemplate[] = [
   {
-    category: "Bright Isolation",
-    template: "A painting in David Hockney style of [Subject], vibrant colors, flat perspective, sunny atmosphere, simple and clean composition."
+    category: "Interpersonal (Masters Fusion)",
+    template: "A naive watercolor painting of [Subject]. Combining Matisse's bold colors, Gauguin's warm palette, and Hockney's flat composition. The figures have blurred facial features with ambiguous expressions, allowing for projection. The mood is [Atmosphere]."
   },
   {
-    category: "Everyday Metaphor",
-    template: "A naive art painting of [Subject], clear lighting, distinct shapes, bright blue and green tones, peaceful but provocative."
+    category: "Metaphor (Colorful)",
+    template: "A symbolic painting of [Subject] in the style of Raoul Dufy and Paul Gauguin. Vibrant warm colors, loose brushwork, soft edges, evocative and dreamlike."
   },
   {
-    category: "Relational Space",
-    template: "A colorful painting depicting [Subject], emphasizing the space between objects, flat colors, minimalism, emotional resonance without darkness."
+    category: "Scene (Atmospheric)",
+    template: "An expressive landscape featuring [Subject]. Hockney-style composition with Dufy's loose wash, capturing a psychological state of [Atmosphere] through rich expressive colors."
   }
 ];
 
-// 主题库 - 明亮生活化意象 (告别鬼影！)
+// 主题库 - 阴阳平衡的心理意象
 const subjects: string[] = [
-  // 1. 人像 (更自然，少鬼影)
-  "a person sitting by a blue swimming pool",
-  "two chairs on a green lawn",
-  "a figure looking out a bright window",
-  "a back view of someone walking on a red road",
-  "two people sitting far apart on a yellow bench",
-  "a diver jumping into water",
-  "a person reading in a sunlit room",
-  "crowd of colorful dots representing people",
-  "a hand holding a bright flower",
+  // --- 阴 (Yin): 冲突、压抑、恐惧、丧失 ---
+  "two people arguing but no sound",
+  "a person curling up in a corner",
+  "a heavy stone pressing down on a flower",
+  "a figure trapped inside a glass jar",
+  "a rope about to break",
+  "a dark hallway with no end",
+  "a mask lying on the floor, broken",
+  "a person standing on the edge of a cliff",
+  "hands tied together",
+  "a drowning figure reaching up",
+  "a wall separating two people",
+  "withered flowers in a vase",
+  "shadows looming over a small figure",
+  "a bird with a broken wing",
+  "spilled dark liquid",
 
-  // 2. 物品与隐喻 (生活化、波普化)
-  "a bright red key on a blue table",
-  "an open door leading to a green garden",
-  "a vase with one yellow tulip",
-  "a colorful ladder leaning against a wall",
-  "a pair of glasses on a desk",
-  "a neatly made bed",
-  "a bird cage with the door open",
-  "a jigsaw puzzle on the floor",
-  "a telephone on a side table",
-  "a raincoat hanging on a hook",
+  // --- 阳 (Yang): 希望、连接、力量、生长 ---
+  "sunlight breaking through dark clouds",
+  "hands holding a small light",
+  "a sturdy bridge crossing a chasm",
+  "a green sprout in dry soil",
+  "two figures hugging tightly",
+  "a bird flying free into the sky",
+  "an open door with light coming out",
+  "a ladder reaching upwards",
+  "a peaceful garden bench",
+  "a key that fits a lock",
+  "a clear path forward",
+  "roots of a tree going deep",
+  "a mirror reflecting a smile",
 
-  // 3. 自然与场景 (风景明信片感)
-  "a road disappearing into bright hills",
-  "a single tree with green leaves",
-  "a bridge over calm blue water",
-  "white clouds in a clear sky",
-  "a path through a colorful forest",
-  "a house with a red roof",
-  "a crossroads under the sun",
-  "waves crashing on a yellow beach",
-  "a mountain peak in pink light"
+  // --- 中性 (Neutral): 等待、迷茫、空无、日常 ---
+  "an empty chair in an empty room",
+  "a clock without hands",
+  "fog covering a road",
+  "a closed book on a table",
+  "a person standing at a crossroads",
+  "reflection in water",
+  "a suitcase packed by the door",
+  "a window looking out at nothing",
+  "footprints disappearing",
+  "a generic silhouette walking away",
+  "distant mountains",
+  "a floating feather",
+  "a locked box",
+  "static noise on a screen"
 ];
 
 /**

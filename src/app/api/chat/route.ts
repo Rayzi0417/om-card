@@ -1,11 +1,13 @@
-// POST /api/chat - V1.1 AI 引导师对话 (流式响应)
+// POST /api/chat - V1.8 AI 引导师对话 (流式响应)
+// 支持 Mode A (单张抽卡) 和 Mode B (舒服区与不舒服区)
+
 import { NextRequest } from 'next/server';
 import { streamText } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
 import { checkRateLimit, CHAT_RATE_LIMIT, getClientIP } from '@/lib/utils/rate-limit';
-import { getCounselorPromptV2 } from '@/lib/prompts/counselor';
-import type { AIProvider, ChatMessage, WordCard } from '@/types';
+import { getCounselorPromptV2, getFlipModePrompt, type GameMode, type FlipPhase } from '@/lib/prompts/counselor';
+import type { AIProvider, ChatMessage } from '@/types';
 
 // Google AI
 const google = createGoogleGenerativeAI({
@@ -34,6 +36,10 @@ export async function POST(request: NextRequest) {
     const messages: ChatMessage[] = body.messages || [];
     const word: WordCard | undefined = body.word;
     const provider: AIProvider = body.provider || 'doubao';
+    
+    // V1.8: 新增模式和阶段参数
+    const mode: GameMode = body.mode || 'single';
+    const phase: FlipPhase | undefined = body.phase;
 
     if (messages.length === 0) {
       return new Response(
@@ -42,11 +48,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // V1.2: 计算当前对话轮次（用户消息数量）
+    // 计算当前对话轮次（用户消息数量）
     const currentTurnCount = messages.filter(m => m.role === 'user').length;
 
-    // V1.2: 使用弹性会话管理 Prompt，传递轮次信息
-    const systemPrompt = getCounselorPromptV2(word, currentTurnCount);
+    // V1.8: 根据模式选择不同的 System Prompt
+    let systemPrompt: string;
+    
+    if (mode === 'flip' && phase) {
+      // Mode B: 舒服 VS. 不舒服
+      systemPrompt = getFlipModePrompt(phase);
+    } else {
+      // Mode A: 单张抽卡 (默认)
+      systemPrompt = getCounselorPromptV2(word, currentTurnCount);
+    }
 
     // 选择模型（默认豆包）
     const model = provider === 'google' 

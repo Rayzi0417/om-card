@@ -1,10 +1,10 @@
 // POST /api/draw - V1.1 复合卡牌生成
 import { NextRequest, NextResponse } from 'next/server';
-import { drawCardV2 } from '@/lib/prompts/generator';
+import { drawCardV2, getClassicCard } from '@/lib/prompts/generator';
 import { checkRateLimit, DRAW_RATE_LIMIT, getClientIP } from '@/lib/utils/rate-limit';
 import { generateImageWithGoogle } from '@/lib/ai-service/google';
 import { generateImageWithDoubao } from '@/lib/ai-service/doubao';
-import type { AIProvider, DrawResponseV2 } from '@/types';
+import type { AIProvider, DrawResponseV2, DeckStyle } from '@/types';
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,21 +31,48 @@ export async function POST(request: NextRequest) {
 
     // 解析请求体
     let provider: AIProvider = 'google';
-    let deckStyle: 'abstract' | 'figurative' = 'figurative'; // 默认具象卡组
+    let deckStyle: DeckStyle = 'figurative'; // 默认具象卡组
     try {
       const body = await request.json();
       if (body.provider === 'doubao') {
         provider = 'doubao';
       }
-      // 修复：正确判断卡组风格
+      // 支持三种卡组风格
       if (body.deckStyle === 'figurative') {
         deckStyle = 'figurative';
+      } else if (body.deckStyle === 'abstract') {
+        deckStyle = 'abstract';
+      } else if (body.deckStyle === 'classic') {
+        deckStyle = 'classic';
       }
     } catch {
       // 使用默认值
     }
 
-    // V1.1: 使用双随机池生成卡牌数据
+    // 经典卡组：直接使用本地图片，不需要 AI 生成
+    if (deckStyle === 'classic') {
+      const classicCard = getClassicCard();
+      console.log('Drawing classic card:', {
+        id: classicCard.id,
+        word: classicCard.word.en
+      });
+
+      const response: DrawResponseV2 = {
+        cardId: crypto.randomUUID(),
+        word: classicCard.word,
+        imageUrl: classicCard.imageUrl,
+        promptKeywords: ['classic', 'OH card', classicCard.word.cn]
+      };
+
+      return NextResponse.json(response, {
+        headers: {
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          'X-RateLimit-Reset': String(rateLimitResult.resetTime)
+        }
+      });
+    }
+
+    // AI 生成卡组（抽象/具象）
     const cardData = drawCardV2(deckStyle);
     console.log('Drawing V1.1 card:', {
       word: cardData.word.en,

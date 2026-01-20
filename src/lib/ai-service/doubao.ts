@@ -30,6 +30,8 @@ export async function generateImageWithDoubao(prompt: string, negativePrompt?: s
 
   try {
     // 火山引擎图像生成 API
+    // 使用 b64_json 格式返回，避免外部 CDN URL 的跨域问题
+    // 注意：此模型要求图片尺寸至少 1920x1920
     const response = await fetch('https://ark.cn-beijing.volces.com/api/v3/images/generations', {
       method: 'POST',
       headers: {
@@ -40,7 +42,7 @@ export async function generateImageWithDoubao(prompt: string, negativePrompt?: s
         model: 'doubao-seedream-4-5-251128',
         prompt: fullPrompt,
         size: '1920x1920',
-        response_format: 'url',
+        response_format: 'b64_json',
       }),
     });
 

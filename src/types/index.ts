@@ -3,7 +3,21 @@
 export type AIProvider = 'google' | 'doubao';
 
 // 卡组风格类型
-export type DeckStyle = 'abstract' | 'figurative';
+export type DeckStyle = 'abstract' | 'figurative' | 'classic';
+
+// V1.8: 游戏模式类型
+export type GameMode = 'single' | 'flip';
+export type FlipPhase = 'definition' | 'flipped';
+
+// V1.8: Flip 模式卡牌状态
+export interface FlipCardState {
+  id: string;
+  word: WordCard;
+  imageUrl: string;
+  promptKeywords: string[];
+  isFlipped: boolean;  // 是否已翻开
+  zone?: 'comfort' | 'discomfort' | null;  // 所属区域
+}
 
 // ============== V1.1 新增类型 ==============
 

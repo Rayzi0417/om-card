@@ -9,6 +9,7 @@ interface CompositeCardProps {
   imageUrl: string | null;
   isImageLoading?: boolean;
   className?: string;
+  imageOnly?: boolean;  // 仅显示图片，不显示文字框
 }
 
 /**
@@ -31,10 +32,56 @@ export function CompositeCard({
   word, 
   imageUrl, 
   isImageLoading = false,
-  className = ''
+  className = '',
+  imageOnly = false
 }: CompositeCardProps) {
   const wordText = word.en;
   
+  // 纯图片模式 - 用于 Mode B (舒服区与不舒服区)
+  if (imageOnly) {
+    return (
+      <div 
+        className={`
+          relative aspect-[3/4] w-full max-w-[320px]
+          rounded-2xl overflow-hidden
+          shadow-[0_4px_20px_rgba(0,0,0,0.2)]
+          ${className}
+        `}
+      >
+        {isImageLoading ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-[#e8e4df]">
+            <motion.div
+              className="w-12 h-12 border-2 border-[#c9a959]/40 border-t-[#c9a959] rounded-full"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1.2, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+            />
+          </div>
+        ) : imageUrl ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4 }}
+            className="relative w-full h-full"
+          >
+            <Image
+              src={imageUrl}
+              alt="Card image"
+              fill
+              className="object-cover"
+              priority
+              unoptimized={imageUrl.startsWith('data:')}
+            />
+          </motion.div>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-[#e8e4df]">
+            <span className="text-[#a09a90] text-xs">等待图像...</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+  
+  // 完整卡牌模式 - 带文字框
   return (
     <div 
       className={`
