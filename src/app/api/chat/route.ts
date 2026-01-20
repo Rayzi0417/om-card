@@ -7,7 +7,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
 import { checkRateLimit, CHAT_RATE_LIMIT, getClientIP } from '@/lib/utils/rate-limit';
 import { getCounselorPromptV2, getFlipModePrompt, type GameMode, type FlipPhase } from '@/lib/prompts/counselor';
-import type { AIProvider, ChatMessage } from '@/types';
+import type { AIProvider, ChatMessage, WordCard } from '@/types';
 
 // Google AI
 const google = createGoogleGenerativeAI({
