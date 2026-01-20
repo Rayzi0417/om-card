@@ -424,7 +424,7 @@ export default function FlipPlayPage() {
       // 左卡文字
       ctx.fillStyle = '#8b8b9e';
       ctx.font = '11px sans-serif';
-      ctx.fillText(leftCard.word?.zh || leftCard.word?.en || '', 100, 290);
+      ctx.fillText(leftCard.word?.cn || leftCard.word?.en || '', 100, 290);
 
       // 绘制右边卡（舒服区）
       ctx.fillStyle = '#fbbf24';
@@ -450,7 +450,7 @@ export default function FlipPlayPage() {
       // 右卡文字
       ctx.fillStyle = '#8b8b9e';
       ctx.font = '11px sans-serif';
-      ctx.fillText(rightCard.word?.zh || rightCard.word?.en || '', 300, 290);
+      ctx.fillText(rightCard.word?.cn || rightCard.word?.en || '', 300, 290);
 
       // 绘制对话摘要背景
       ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
