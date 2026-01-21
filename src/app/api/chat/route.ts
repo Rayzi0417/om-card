@@ -154,7 +154,8 @@ export async function POST(request: NextRequest) {
     const result = await streamText({
       model,
       system: systemPrompt,
-      messages: aiMessages,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      messages: aiMessages as any,
     });
 
     return result.toTextStreamResponse();
