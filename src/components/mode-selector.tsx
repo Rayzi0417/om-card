@@ -44,14 +44,14 @@ const PLAY_MODES: PlayMode[] = [
     id: 'journey',
     title: '英雄之旅',
     subtitle: "The Hero's Journey",
-    description: '过去、现在、未来。探索生命故事的流向。',
+    description: '通过 10 张卡牌，探索你内心深处的英雄故事。',
     tags: [
       { icon: <User className="w-3 h-3" />, text: '1人' },
       { icon: <Clock className="w-3 h-3" />, text: '15分钟' },
-      { icon: <Map className="w-3 h-3" />, text: '3张牌' },
+      { icon: <Map className="w-3 h-3" />, text: '10张牌' },
     ],
-    status: 'coming_soon',
-    href: '#',
+    status: 'active',
+    href: '/play/hero',
   },
   {
     id: 'freeflow',

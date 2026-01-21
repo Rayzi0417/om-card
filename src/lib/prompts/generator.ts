@@ -188,6 +188,60 @@ export function getClassicCards(count: number): Array<{
   return cards;
 }
 
+// ============== SAGA 英雄之旅卡组 ==============
+
+/**
+ * 获取单张 SAGA 英雄之旅卡
+ * SAGA 卡共 55 张（1-55），无文字
+ * @param excludeIds 排除的卡牌ID
+ * @returns 卡牌数据
+ */
+export function getSagaCard(excludeIds: number[] = []): {
+  id: number;
+  imageUrl: string;
+} {
+  // 可用的卡牌ID范围：1-55
+  const availableIds = Array.from({ length: 55 }, (_, i) => i + 1)
+    .filter(id => !excludeIds.includes(id));
+  
+  if (availableIds.length === 0) {
+    // 如果没有可用的，重新从全部中选
+    const id = Math.floor(Math.random() * 55) + 1;
+    return {
+      id,
+      imageUrl: `/cards/saga/${id}.jpg`,
+    };
+  }
+  
+  const id = availableIds[Math.floor(Math.random() * availableIds.length)];
+  
+  return {
+    id,
+    imageUrl: `/cards/saga/${id}.jpg`,
+  };
+}
+
+/**
+ * 获取多张 SAGA 英雄之旅卡（不重复）
+ * @param count 数量
+ * @returns 卡牌数组
+ */
+export function getSagaCards(count: number): Array<{
+  id: number;
+  imageUrl: string;
+}> {
+  const cards: Array<{ id: number; imageUrl: string }> = [];
+  const usedIds: number[] = [];
+  
+  for (let i = 0; i < count; i++) {
+    const card = getSagaCard(usedIds);
+    cards.push(card);
+    usedIds.push(card.id);
+  }
+  
+  return cards;
+}
+
 // ============== 卡组类型 ==============
 
 export type DeckStyle = 'abstract' | 'figurative' | 'classic';

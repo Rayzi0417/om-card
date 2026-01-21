@@ -5,9 +5,10 @@ export type AIProvider = 'google' | 'doubao';
 // 卡组风格类型
 export type DeckStyle = 'abstract' | 'figurative' | 'classic';
 
-// V1.8: 游戏模式类型
-export type GameMode = 'single' | 'flip';
-export type FlipPhase = 'definition' | 'flipped';
+// V2.0: 游戏模式类型
+export type GameMode = 'single' | 'flip' | 'hero';
+export type FlipPhase = 'initial' | 'swapped' | 'conclusion';
+export type HeroStep = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
 
 // V1.8: Flip 模式卡牌状态
 export interface FlipCardState {
