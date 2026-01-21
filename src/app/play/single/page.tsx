@@ -437,7 +437,7 @@ export default function SinglePlayPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="fixed bottom-0 left-0 right-0 p-4 pb-safe bg-gradient-to-t from-[#0f0f23] to-transparent"
+          className="fixed bottom-0 left-0 right-0 z-30 p-4 pb-safe bg-gradient-to-t from-[#0f0f23] via-[#0f0f23]/90 to-transparent"
         >
           <div className="flex gap-3 max-w-md mx-auto">
             <button
