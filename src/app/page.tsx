@@ -113,7 +113,7 @@ export default function Home() {
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#c9a959]/5 to-transparent pointer-events-none" />
 
       {/* 免责声明 */}
-      <footer className="absolute bottom-2 left-0 right-0 text-center z-10 px-4">
+      <footer className="absolute bottom-2 left-0 right-0 text-center z-10 px-4 pb-safe">
         <p className="text-[10px] text-[#8b8b9e]/50 leading-relaxed">
           本应用由 AI 驱动，仅供心理投射与自我探索，不构成任何医疗建议。
         </p>
