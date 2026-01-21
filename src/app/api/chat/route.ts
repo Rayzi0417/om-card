@@ -3,7 +3,7 @@
 // 支持多模态：AI 可以看到卡牌图像
 
 import { NextRequest } from 'next/server';
-import { streamText, CoreMessage } from 'ai';
+import { streamText } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
 import { checkRateLimit, CHAT_RATE_LIMIT, getClientIP } from '@/lib/utils/rate-limit';
@@ -11,6 +11,15 @@ import { getCounselorPromptV2, getFlipModePrompt, getHeroModePrompt, type GameMo
 import type { AIProvider, ChatMessage, WordCard } from '@/types';
 import fs from 'fs';
 import path from 'path';
+
+// 多模态消息类型
+type ImagePart = { type: 'image'; image: string | URL };
+type TextPart = { type: 'text'; text: string };
+type MessageContent = string | (ImagePart | TextPart)[];
+interface AIMessage {
+  role: 'user' | 'assistant';
+  content: MessageContent;
+}
 
 // Google AI
 const google = createGoogleGenerativeAI({
@@ -90,7 +99,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 构建多模态消息
-    let aiMessages: CoreMessage[] = [];
+    let aiMessages: AIMessage[] = [];
     
     if (useVision && imageUrl) {
       // 获取图像数据
