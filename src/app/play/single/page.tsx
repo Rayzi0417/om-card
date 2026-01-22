@@ -168,31 +168,35 @@ export default function SinglePlayPage() {
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('Canvas not supported');
 
-      // 设置画布尺寸
-      canvas.width = 320;
-      canvas.height = 480;
+      // 设置画布尺寸 (2x 高清)
+      const scale = 2;
+      const W = 320; // 逻辑宽度
+      const H = 480; // 逻辑高度
+      canvas.width = W * scale;
+      canvas.height = H * scale;
+      ctx.scale(scale, scale);
 
       // 绘制背景渐变
-      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      const gradient = ctx.createLinearGradient(0, 0, 0, H);
       gradient.addColorStop(0, '#1a1a2e');
       gradient.addColorStop(1, '#0f0f23');
       ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, W, H);
 
       // 绘制装饰边框
       ctx.strokeStyle = 'rgba(201, 169, 89, 0.3)';
       ctx.lineWidth = 1;
-      ctx.strokeRect(15, 15, canvas.width - 30, canvas.height - 30);
+      ctx.strokeRect(15, 15, W - 30, H - 30);
 
       // 绘制标题
       ctx.fillStyle = '#c9a959';
       ctx.font = 'bold 18px serif';
       ctx.textAlign = 'center';
-      ctx.fillText('当下映照', canvas.width / 2, 45);
+      ctx.fillText('当下映照', W / 2, 45);
 
       ctx.fillStyle = '#8b8b9e';
       ctx.font = '11px sans-serif';
-      ctx.fillText('The Daily Mirror', canvas.width / 2, 62);
+      ctx.fillText('The Daily Mirror', W / 2, 62);
 
       // 加载并绘制卡片图片
       const loadImg = (src: string): Promise<HTMLImageElement> => {
@@ -265,7 +269,7 @@ export default function SinglePlayPage() {
       ctx.fillStyle = '#c9a959';
       ctx.font = '10px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(`Om Card · ${new Date().toLocaleDateString('zh-CN')}`, canvas.width / 2, canvas.height - 25);
+      ctx.fillText(`Om Card · ${new Date().toLocaleDateString('zh-CN')}`, W / 2, H - 25);
 
       const dataUrl = canvas.toDataURL('image/png');
       setSaveState({ isGenerating: false, previewUrl: dataUrl });

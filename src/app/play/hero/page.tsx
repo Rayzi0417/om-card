@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { ArrowLeft, Camera, SkipForward, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Camera, SkipForward, ChevronRight, ZoomIn } from 'lucide-react';
 import Link from 'next/link';
 import { CompositeCard } from '@/components/composite-card';
 import { SettingsDrawer } from '@/components/settings-drawer';
@@ -46,6 +46,80 @@ type GameStage = 'intro' | 'playing' | 'generating' | 'summary' | 'reflection' |
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+}
+
+// 可缩放的预览组件
+function ZoomablePreview({ imageUrl, onClose }: { imageUrl: string; onClose: () => void }) {
+  const [scale, setScale] = useState(1);
+  const lastTouchDistance = useRef<number | null>(null);
+
+  // 滚轮缩放
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    setScale(prev => Math.min(Math.max(prev + delta, 0.5), 3));
+  }, []);
+
+  // 双指缩放
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const distance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+      
+      if (lastTouchDistance.current !== null) {
+        const delta = (distance - lastTouchDistance.current) * 0.01;
+        setScale(prev => Math.min(Math.max(prev + delta, 0.5), 3));
+      }
+      lastTouchDistance.current = distance;
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    lastTouchDistance.current = null;
+  }, []);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 overflow-hidden"
+      onClick={onClose}
+      onWheel={handleWheel}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale, opacity: 1 }}
+        exit={{ scale: 0.8, opacity: 0 }}
+        className="w-full max-w-[320px]"
+        onClick={(e) => e.stopPropagation()}
+        style={{ touchAction: 'none' }}
+      >
+        <img
+          src={imageUrl}
+          alt="卡片预览"
+          className="w-full rounded-xl shadow-2xl"
+        />
+      </motion.div>
+      
+      {/* 提示文字 */}
+      <div className="absolute bottom-8 left-0 right-0 text-center">
+        <p className="text-[#8b8b9e] text-xs">
+          滚轮/双指缩放 · 点击空白处关闭
+        </p>
+        <p className="text-[#8b8b9e]/60 text-xs mt-1">
+          {Math.round(scale * 100)}%
+        </p>
+      </div>
+    </motion.div>
+  );
 }
 
 /**
@@ -435,27 +509,31 @@ export default function HeroJourneyPage() {
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('Canvas not supported');
 
-      // 画布尺寸
-      canvas.width = 400;
-      canvas.height = 900;
+      // 画布尺寸 (2x 高清)
+      const scale = 2;
+      const W = 400; // 逻辑宽度
+      const H = 900; // 逻辑高度
+      canvas.width = W * scale;
+      canvas.height = H * scale;
+      ctx.scale(scale, scale);
 
       // 背景
-      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      const gradient = ctx.createLinearGradient(0, 0, 0, H);
       gradient.addColorStop(0, '#1a1a2e');
       gradient.addColorStop(0.5, '#0f0f23');
       gradient.addColorStop(1, '#1a1a2e');
       ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, W, H);
 
       // 标题
       ctx.fillStyle = '#c9a959';
       ctx.font = 'bold 24px serif';
       ctx.textAlign = 'center';
-      ctx.fillText('英雄之旅', canvas.width / 2, 40);
+      ctx.fillText('英雄之旅', W / 2, 40);
       
       ctx.fillStyle = '#8b8b9e';
       ctx.font = '12px sans-serif';
-      ctx.fillText("The Hero's Journey", canvas.width / 2, 58);
+      ctx.fillText("The Hero's Journey", W / 2, 58);
 
       // 加载图片函数
       const loadImg = (src: string): Promise<HTMLImageElement> => {
@@ -510,7 +588,7 @@ export default function HeroJourneyPage() {
       const storyY = gridStartY + 2 * (cardHeight + gap + 15) + 20;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
       ctx.beginPath();
-      ctx.roundRect(20, storyY, 360, canvas.height - storyY - 40, 12);
+      ctx.roundRect(20, storyY, 360, H - storyY - 40, 12);
       ctx.fill();
 
       // 故事标题
@@ -536,12 +614,12 @@ export default function HeroJourneyPage() {
           ctx.fillText(line, 30, textY);
           line = char;
           textY += lineHeight;
-          if (textY > canvas.height - 50) break;
+          if (textY > H - 50) break;
         } else {
           line = testLine;
         }
       }
-      if (line && textY <= canvas.height - 50) {
+      if (line && textY <= H - 50) {
         ctx.fillText(line, 30, textY);
       }
 
@@ -549,7 +627,7 @@ export default function HeroJourneyPage() {
       ctx.fillStyle = '#8b8b9e';
       ctx.font = '10px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(`Om Card · ${new Date().toLocaleDateString('zh-CN')}`, canvas.width / 2, canvas.height - 15);
+      ctx.fillText(`Om Card · ${new Date().toLocaleDateString('zh-CN')}`, W / 2, H - 15);
 
       setSavePreviewUrl(canvas.toDataURL('image/png'));
       toast.success('英雄史诗生成成功！', { id: 'saving' });
@@ -712,7 +790,7 @@ export default function HeroJourneyPage() {
                   animate={{ opacity: 1 }}
                   className="flex-shrink-0 mb-3"
                 >
-                  <p className="text-[#8b8b9e] text-xs mb-2">📖 故事进程</p>
+                  <p className="text-[#8b8b9e] text-xs mb-2">📖 故事进程 · 点击卡片放大</p>
                   <div className="flex gap-2 overflow-x-auto pb-2">
                     {storyLog.map((entry, i) => (
                       <motion.div
@@ -723,12 +801,16 @@ export default function HeroJourneyPage() {
                         className="flex-shrink-0 cursor-pointer group"
                         onClick={() => setPreviewCard({ id: entry.card.id, imageUrl: entry.card.imageUrl })}
                       >
-                        <div className="w-12 h-16 rounded-lg overflow-hidden border border-white/10 group-hover:border-[#c9a959]/50 transition-colors">
+                        <div className="w-12 h-16 rounded-lg overflow-hidden border border-white/10 group-hover:border-[#c9a959]/50 transition-colors relative">
                           <img
                             src={entry.card.imageUrl}
                             alt={HERO_STEPS[i]?.title}
                             className="w-full h-full object-cover"
                           />
+                          {/* 悬停时显示放大图标 */}
+                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <ZoomIn className="w-4 h-4 text-white" />
+                          </div>
                         </div>
                         <p className="text-[10px] text-[#8b8b9e] text-center mt-1 truncate w-12">
                           {HERO_STEPS[i]?.title}
@@ -873,6 +955,7 @@ export default function HeroJourneyPage() {
               </div>
 
               {/* 10 张卡片网格 */}
+              <p className="text-[#8b8b9e] text-xs mb-2 text-center">点击卡片放大查看</p>
               <div className="grid grid-cols-5 gap-2 mb-4">
                 {storyLog.map((entry, i) => (
                   <motion.div
@@ -880,7 +963,7 @@ export default function HeroJourneyPage() {
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: i * 0.1 }}
-                    className="aspect-[3/4] rounded-lg overflow-hidden bg-white/5 cursor-pointer"
+                    className="aspect-[3/4] rounded-lg overflow-hidden bg-white/5 cursor-pointer group relative"
                     onClick={() => setPreviewCard(entry.card)}
                   >
                     <img
@@ -888,6 +971,9 @@ export default function HeroJourneyPage() {
                       alt={HERO_STEPS[i]?.title}
                       className="w-full h-full object-cover"
                     />
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <ZoomIn className="w-5 h-5 text-white" />
+                    </div>
                   </motion.div>
                 ))}
               </div>
@@ -1063,6 +1149,7 @@ export default function HeroJourneyPage() {
               </div>
 
               {/* 10 张卡片网格 */}
+              <p className="text-[#8b8b9e] text-xs mb-2 text-center">点击卡片放大查看</p>
               <div className="grid grid-cols-5 gap-2 mb-4">
                 {storyLog.map((entry, i) => (
                   <motion.div
@@ -1070,7 +1157,7 @@ export default function HeroJourneyPage() {
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: i * 0.05 }}
-                    className="aspect-[3/4] rounded-lg overflow-hidden bg-white/5 cursor-pointer"
+                    className="aspect-[3/4] rounded-lg overflow-hidden bg-white/5 cursor-pointer group relative"
                     onClick={() => setPreviewCard(entry.card)}
                   >
                     <img
@@ -1078,6 +1165,9 @@ export default function HeroJourneyPage() {
                       alt={HERO_STEPS[i]?.title}
                       className="w-full h-full object-cover"
                     />
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <ZoomIn className="w-5 h-5 text-white" />
+                    </div>
                   </motion.div>
                 ))}
               </div>
@@ -1141,31 +1231,13 @@ export default function HeroJourneyPage() {
         title="保存英雄史诗"
       />
 
-      {/* 卡片放大预览模态框 */}
+      {/* 卡片放大预览模态框 - 支持缩放 */}
       <AnimatePresence>
         {previewCard && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
-            onClick={() => setPreviewCard(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              className="w-full max-w-[320px]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <img
-                src={previewCard.imageUrl}
-                alt="卡片预览"
-                className="w-full rounded-xl shadow-2xl"
-              />
-              <p className="text-center text-[#8b8b9e] text-xs mt-4">点击空白处关闭</p>
-            </motion.div>
-          </motion.div>
+          <ZoomablePreview
+            imageUrl={previewCard.imageUrl}
+            onClose={() => setPreviewCard(null)}
+          />
         )}
       </AnimatePresence>
 

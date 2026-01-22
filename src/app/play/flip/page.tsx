@@ -15,6 +15,7 @@ import type { AIProvider, DeckStyle, WordCard, ChatMessage } from '@/types';
 type GameStage = 
   | 'init'         // 选择卡组
   | 'loading'      // 加载卡牌
+  | 'selecting'    // 选择卡牌阶段（5选2或3选2）
   | 'setup'        // 分配卡牌到左右区域
   | 'initial'      // 第一轮探索（交换前）
   | 'swapping'     // 交换动画
@@ -44,9 +45,10 @@ export default function FlipPlayPage() {
   // 游戏状态
   const [stage, setStage] = useState<GameStage>('init');
   const [cards, setCards] = useState<CardData[]>([]);
+  const [selectedCards, setSelectedCards] = useState<CardData[]>([]); // 选中的卡牌（用于选择阶段）
   const [leftCard, setLeftCard] = useState<CardData | null>(null);   // 不舒服区
   const [rightCard, setRightCard] = useState<CardData | null>(null); // 舒服区
-  const [isSwapped, setIsSwapped] = useState(false);
+  const [hasSwapped, setHasSwapped] = useState(false); // 是否已完成交换（用于记录，不用于显示）
   
   // 拖拽状态
   const [draggingCard, setDraggingCard] = useState<CardData | null>(null);
@@ -77,24 +79,26 @@ export default function FlipPlayPage() {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  // 生成经典卡牌
+  // 生成经典卡牌 - 5张供选择
   const generateClassicCards = useCallback(() => {
-    const classicCards = getClassicCards(2);
+    const classicCards = getClassicCards(5);
     const generatedCards: CardData[] = classicCards.map((card) => ({
       id: `classic-${card.id}`,
       word: card.word,
       imageUrl: card.imageUrl,
     }));
     setCards(generatedCards);
-    setStage('setup');
+    setSelectedCards([]);
+    setStage('selecting');
   }, []);
 
-  // 生成AI卡牌
+  // 生成AI卡牌 - 3张供选择（边生成边显示进度）
   const generateAiCards = useCallback(async () => {
     setStage('loading');
+    setCards([]); // 清空之前的卡牌
     const generatedCards: CardData[] = [];
     
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 3; i++) {
       try {
         const response = await fetch('/api/draw', {
           method: 'POST',
@@ -104,24 +108,27 @@ export default function FlipPlayPage() {
         
         if (response.ok) {
           const data = await response.json();
-          generatedCards.push({
+          const newCard = {
             id: data.cardId,
             word: data.word,
             imageUrl: data.imageUrl,
-          });
+          };
+          generatedCards.push(newCard);
+          // 实时更新卡牌数组（用于显示进度）
+          setCards([...generatedCards]);
         }
       } catch (error) {
         console.error('Card generation failed:', error);
       }
       
-      if (i < 1) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+      if (i < 2) {
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
     }
     
     if (generatedCards.length >= 2) {
-      setCards(generatedCards);
-      setStage('setup');
+      setSelectedCards([]);
+      setStage('selecting');
     } else {
       toast.error('卡牌生成失败，请重试');
       setStage('init');
@@ -133,7 +140,8 @@ export default function FlipPlayPage() {
     setDeckSource(source);
     setLeftCard(null);
     setRightCard(null);
-    setIsSwapped(false);
+    setHasSwapped(false);
+    setSelectedCards([]);
     setMessages([]);
     
     if (source === 'classic') {
@@ -327,13 +335,19 @@ export default function FlipPlayPage() {
   // 触发 Swap 动画
   const triggerSwap = useCallback(() => {
     setStage('swapping');
+    // 动画完成后，真正交换卡牌位置
     setTimeout(() => {
-      setIsSwapped(true);
+      // 交换 leftCard 和 rightCard 的值
+      const tempLeft = leftCard;
+      const tempRight = rightCard;
+      setLeftCard(tempRight);
+      setRightCard(tempLeft);
+      setHasSwapped(true);
       setStage('swapped');
       // 继续对话
       startChat('swapped');
-    }, 1500);
-  }, [startChat]);
+    }, 1200); // 与动画时长一致
+  }, [startChat, leftCard, rightCard]);
 
   // 进入收尾阶段
   const goToConclusion = useCallback(() => {
@@ -356,26 +370,30 @@ export default function FlipPlayPage() {
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('Canvas not supported');
 
-      // 设置画布尺寸
-      canvas.width = 400;
-      canvas.height = 550;
+      // 设置画布尺寸 (2x 高清)
+      const scale = 2;
+      const W = 400; // 逻辑宽度
+      const H = 550; // 逻辑高度
+      canvas.width = W * scale;
+      canvas.height = H * scale;
+      ctx.scale(scale, scale);
 
       // 绘制渐变背景
-      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      const gradient = ctx.createLinearGradient(0, 0, 0, H);
       gradient.addColorStop(0, '#1a1a2e');
       gradient.addColorStop(1, '#0f0f23');
       ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, W, H);
 
       // 绘制标题
       ctx.fillStyle = '#c9a959';
       ctx.font = 'bold 22px serif';
       ctx.textAlign = 'center';
-      ctx.fillText('舒服 VS. 不舒服', canvas.width / 2, 35);
+      ctx.fillText('舒服 VS. 不舒服', W / 2, 35);
 
       ctx.fillStyle = '#8b8b9e';
       ctx.font = '12px sans-serif';
-      ctx.fillText('一体两面的洞见', canvas.width / 2, 55);
+      ctx.fillText('一体两面的洞见', W / 2, 55);
 
       // 加载并绘制图片 - 使用完整 URL
       const loadImg = (src: string): Promise<HTMLImageElement> => {
@@ -502,7 +520,7 @@ export default function FlipPlayPage() {
       ctx.fillStyle = 'rgba(201, 169, 89, 0.6)';
       ctx.font = '10px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(`Om Card · ${new Date().toLocaleDateString('zh-CN')}`, canvas.width / 2, canvas.height - 15);
+      ctx.fillText(`Om Card · ${new Date().toLocaleDateString('zh-CN')}`, W / 2, H - 15);
 
       // 转换为图片 URL
       const dataUrl = canvas.toDataURL('image/png', 1);
@@ -520,9 +538,10 @@ export default function FlipPlayPage() {
   const handleReset = useCallback(() => {
     setStage('init');
     setCards([]);
+    setSelectedCards([]);
     setLeftCard(null);
     setRightCard(null);
-    setIsSwapped(false);
+    setHasSwapped(false);
     setMessages([]);
   }, []);
 
@@ -558,13 +577,13 @@ export default function FlipPlayPage() {
             imageOnly
           />
         </div>
-        {/* 放大按钮 - hover 时显示 */}
+        {/* 放大按钮 - 移动端常显，桌面端悬停显示 */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             setPreviewCard(card);
           }}
-          className="absolute top-1 right-1 p-1.5 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto hover:bg-black/70"
+          className="absolute top-1 left-1 p-1.5 rounded-full bg-black/60 text-white opacity-70 md:opacity-0 md:group-hover:opacity-100 transition-opacity pointer-events-auto hover:bg-black/80"
           title="点击放大查看"
         >
           <ZoomIn className="w-4 h-4" />
@@ -572,6 +591,49 @@ export default function FlipPlayPage() {
       </motion.div>
     );
   };
+
+  // 预览缩放状态
+  const [previewScale, setPreviewScale] = useState(1);
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  // 处理滚轮缩放
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    setPreviewScale(prev => Math.min(Math.max(prev + delta, 0.5), 3));
+  }, []);
+
+  // 处理双指缩放
+  const lastTouchDistance = useRef<number | null>(null);
+  
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const distance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+      
+      if (lastTouchDistance.current !== null) {
+        const delta = (distance - lastTouchDistance.current) * 0.01;
+        setPreviewScale(prev => Math.min(Math.max(prev + delta, 0.5), 3));
+      }
+      lastTouchDistance.current = distance;
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    lastTouchDistance.current = null;
+  }, []);
+
+  // 重置缩放
+  useEffect(() => {
+    if (!previewCard) {
+      setPreviewScale(1);
+    }
+  }, [previewCard]);
 
   // 渲染卡片预览模态框
   const renderPreviewModal = () => {
@@ -582,21 +644,26 @@ export default function FlipPlayPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 overflow-hidden"
         onClick={() => setPreviewCard(null)}
+        onWheel={handleWheel}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         <motion.div
+          ref={previewRef}
           initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
+          animate={{ scale: previewScale, opacity: 1 }}
           exit={{ scale: 0.8, opacity: 0 }}
           transition={{ type: 'spring', damping: 25 }}
           className="relative max-w-md w-full"
           onClick={(e) => e.stopPropagation()}
+          style={{ touchAction: 'none' }}
         >
           {/* 关闭按钮 */}
           <button
             onClick={() => setPreviewCard(null)}
-            className="absolute -top-12 right-0 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+            className="absolute -top-12 right-0 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors z-10"
           >
             <X className="w-6 h-6" />
           </button>
@@ -609,13 +676,161 @@ export default function FlipPlayPage() {
               imageOnly
             />
           </div>
-
-          {/* 提示文字 */}
-          <p className="text-center text-[#8b8b9e] text-sm mt-4">
-            点击空白处或 ✕ 关闭预览
-          </p>
         </motion.div>
+        
+        {/* 提示文字 - 固定在底部 */}
+        <div className="absolute bottom-8 left-0 right-0 text-center">
+          <p className="text-[#8b8b9e] text-sm">
+            滚轮/双指缩放 · 点击空白处关闭
+          </p>
+          <p className="text-[#8b8b9e]/60 text-xs mt-1">
+            {Math.round(previewScale * 100)}%
+          </p>
+        </div>
       </motion.div>
+    );
+  };
+
+  // 选择/取消选择卡牌
+  const toggleSelectCard = useCallback((card: CardData) => {
+    setSelectedCards(prev => {
+      const isSelected = prev.some(c => c.id === card.id);
+      if (isSelected) {
+        // 取消选择
+        return prev.filter(c => c.id !== card.id);
+      } else {
+        // 选择（最多2张）
+        if (prev.length >= 2) {
+          toast.error('最多选择2张卡牌');
+          return prev;
+        }
+        return [...prev, card];
+      }
+    });
+  }, []);
+
+  // 确认选择，进入分配阶段
+  const confirmSelection = useCallback(() => {
+    if (selectedCards.length !== 2) {
+      toast.error('请选择2张卡牌');
+      return;
+    }
+    // 把选中的卡牌设为待分配的卡牌
+    setCards(selectedCards);
+    setStage('setup');
+  }, [selectedCards]);
+
+  // 渲染选择卡牌阶段
+  const renderSelectingCards = () => {
+    const totalCards = cards.length;
+
+    // 渲染单张可选择的卡牌
+    const renderSelectableCard = (card: CardData, index: number) => {
+      const isSelected = selectedCards.some(c => c.id === card.id);
+      const selectionOrder = selectedCards.findIndex(c => c.id === card.id) + 1;
+      
+      return (
+        <motion.div
+          key={card.id}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: index * 0.1 }}
+          className="relative group"
+        >
+          <motion.div
+            onClick={() => toggleSelectCard(card)}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className={`w-28 h-36 rounded-xl overflow-hidden cursor-pointer transition-all ${
+              isSelected 
+                ? 'ring-4 ring-[#c9a959] shadow-[0_0_20px_rgba(201,169,89,0.4)]' 
+                : 'ring-1 ring-white/10 hover:ring-white/30'
+            }`}
+          >
+            <CompositeCard
+              word={card.word}
+              imageUrl={card.imageUrl}
+              imageOnly
+            />
+          </motion.div>
+          
+          {/* 选择序号标记 */}
+          {isSelected && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="absolute -top-2 -right-2 w-6 h-6 bg-[#c9a959] rounded-full flex items-center justify-center text-[#0f0f23] text-sm font-bold z-10"
+            >
+              {selectionOrder}
+            </motion.div>
+          )}
+
+          {/* 放大按钮 - 悬停时显示 */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setPreviewCard(card);
+            }}
+            className="absolute top-1 left-1 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 md:opacity-0 max-md:opacity-70 transition-opacity z-10"
+            title="点击放大查看"
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
+          </button>
+        </motion.div>
+      );
+    };
+    
+    return (
+      <div className="flex flex-col items-center gap-6 py-4">
+        <div className="text-center">
+          <p className="text-[#c9a959] text-lg font-serif mb-2">
+            凝视这些画面...
+          </p>
+          <p className="text-[#8b8b9e] text-sm mb-1">
+            选出 <span className="text-amber-400">1张让你感到舒服的</span>
+          </p>
+          <p className="text-[#8b8b9e] text-sm mb-2">
+            再选出 <span className="text-indigo-300">1张让你感到不舒服的</span>
+          </p>
+          <p className="text-[#8b8b9e]/60 text-xs">
+            已选 {selectedCards.length}/2 · 点击卡牌选择，长按/悬停放大
+          </p>
+        </div>
+
+        {/* 卡牌网格 - 响应式布局 */}
+        {/* 宽屏时：5张上3下2，3张一排；窄屏时：自动换行 */}
+        <div className="w-full max-w-md px-4">
+          {totalCards === 5 ? (
+            // 5张卡：窄屏自动换行，宽屏上3下2
+            <div className="flex flex-col items-center gap-4">
+              {/* 第一排：3张 */}
+              <div className="flex flex-wrap justify-center gap-4">
+                {cards.slice(0, 3).map((card, index) => renderSelectableCard(card, index))}
+              </div>
+              {/* 第二排：2张 */}
+              <div className="flex flex-wrap justify-center gap-4">
+                {cards.slice(3, 5).map((card, index) => renderSelectableCard(card, index + 3))}
+              </div>
+            </div>
+          ) : (
+            // 3张卡：自动换行适应屏幕
+            <div className="flex flex-wrap justify-center gap-4">
+              {cards.map((card, index) => renderSelectableCard(card, index))}
+            </div>
+          )}
+        </div>
+
+        {/* 确认按钮 */}
+        <motion.button
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: selectedCards.length === 2 ? 1 : 0.5, y: 0 }}
+          onClick={confirmSelection}
+          disabled={selectedCards.length !== 2}
+          className="px-6 py-2 bg-[#c9a959] text-[#0f0f23] rounded-full text-sm font-medium disabled:cursor-not-allowed"
+        >
+          确认选择，开始分配
+        </motion.button>
+      </div>
     );
   };
 
@@ -686,7 +901,7 @@ export default function FlipPlayPage() {
         {/* 待分配的卡牌 */}
         {unassignedCards.length > 0 && (
           <div className="flex flex-col items-center gap-3">
-            <p className="text-[#8b8b9e] text-xs">↓ 拖动卡牌到上方区域 ↓</p>
+            <p className="text-[#8b8b9e] text-xs">↓ 拖动卡牌到上方区域 · 点击🔍放大查看 ↓</p>
             <div className="flex justify-center gap-4">
               {unassignedCards.map(card => renderDraggableCard(card))}
             </div>
@@ -723,10 +938,7 @@ export default function FlipPlayPage() {
 
   // 渲染卡牌区域（对话阶段）
   const renderDialogueZones = () => {
-    // 当前显示的卡牌（考虑交换状态）
-    const displayLeftCard = isSwapped ? rightCard : leftCard;
-    const displayRightCard = isSwapped ? leftCard : rightCard;
-
+    // 直接使用 leftCard 和 rightCard（交换后它们的值已经互换了）
     return (
       <div className="flex justify-center gap-8 items-start py-1">
         {/* 左侧：不舒服区 */}
@@ -736,29 +948,69 @@ export default function FlipPlayPage() {
             <span className="text-indigo-300">🌙</span>
             <span className="text-indigo-300 text-sm font-medium">不舒服区</span>
           </div>
-          {/* 卡牌容器 - 固定位置，内部卡牌可能动 */}
+          {/* 卡牌容器 */}
           <div className="relative w-40 h-52 md:w-48 md:h-64 lg:w-52 lg:h-72">
-            {/* 左边的卡牌 */}
-            <motion.div
-              className="absolute inset-0 rounded-xl overflow-hidden shadow-[0_0_25px_rgba(99,102,241,0.3)] cursor-pointer group"
-              animate={stage === 'swapping' ? { x: 200 } : { x: 0 }}
-              transition={{ duration: 1.2, ease: 'easeInOut' }}
-              onClick={() => displayLeftCard && setPreviewCard(displayLeftCard)}
-            >
-              {displayLeftCard && (
+            <AnimatePresence mode="wait">
+              {stage === 'swapping' ? (
+                // 交换动画：左卡移到右边，右卡移到左边
                 <>
-                  <CompositeCard
-                    word={displayLeftCard.word}
-                    imageUrl={displayLeftCard.imageUrl}
-                    imageOnly
-                  />
-                  {/* 放大提示 */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                    <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-80 transition-opacity" />
-                  </div>
+                  {/* 原本在左边的卡往右移出 */}
+                  <motion.div
+                    key="left-out"
+                    className="absolute inset-0 rounded-xl overflow-hidden shadow-[0_0_25px_rgba(99,102,241,0.3)]"
+                    initial={{ x: 0, opacity: 1 }}
+                    animate={{ x: 200, opacity: 0 }}
+                    transition={{ duration: 0.6, ease: 'easeInOut' }}
+                  >
+                    {leftCard && (
+                      <CompositeCard
+                        word={leftCard.word}
+                        imageUrl={leftCard.imageUrl}
+                        imageOnly
+                      />
+                    )}
+                  </motion.div>
+                  {/* 原本在右边的卡移进来 */}
+                  <motion.div
+                    key="right-in"
+                    className="absolute inset-0 rounded-xl overflow-hidden shadow-[0_0_25px_rgba(99,102,241,0.3)]"
+                    initial={{ x: -200, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ duration: 0.6, ease: 'easeInOut', delay: 0.5 }}
+                  >
+                    {rightCard && (
+                      <CompositeCard
+                        word={rightCard.word}
+                        imageUrl={rightCard.imageUrl}
+                        imageOnly
+                      />
+                    )}
+                  </motion.div>
                 </>
+              ) : (
+                // 正常显示
+                <motion.div
+                  key="left-normal"
+                  className="absolute inset-0 rounded-xl overflow-hidden shadow-[0_0_25px_rgba(99,102,241,0.3)] cursor-pointer group"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  onClick={() => leftCard && setPreviewCard(leftCard)}
+                >
+                  {leftCard && (
+                    <>
+                      <CompositeCard
+                        word={leftCard.word}
+                        imageUrl={leftCard.imageUrl}
+                        imageOnly
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                        <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-80 transition-opacity" />
+                      </div>
+                    </>
+                  )}
+                </motion.div>
               )}
-            </motion.div>
+            </AnimatePresence>
           </div>
         </div>
 
@@ -769,29 +1021,69 @@ export default function FlipPlayPage() {
             <span className="text-amber-400">☀️</span>
             <span className="text-amber-300 text-sm font-medium">舒服区</span>
           </div>
-          {/* 卡牌容器 - 固定位置，内部卡牌可能动 */}
+          {/* 卡牌容器 */}
           <div className="relative w-40 h-52 md:w-48 md:h-64 lg:w-52 lg:h-72">
-            {/* 右边的卡牌 */}
-            <motion.div
-              className="absolute inset-0 rounded-xl overflow-hidden shadow-[0_0_25px_rgba(251,191,36,0.3)] cursor-pointer group"
-              animate={stage === 'swapping' ? { x: -200 } : { x: 0 }}
-              transition={{ duration: 1.2, ease: 'easeInOut' }}
-              onClick={() => displayRightCard && setPreviewCard(displayRightCard)}
-            >
-              {displayRightCard && (
+            <AnimatePresence mode="wait">
+              {stage === 'swapping' ? (
+                // 交换动画
                 <>
-                  <CompositeCard
-                    word={displayRightCard.word}
-                    imageUrl={displayRightCard.imageUrl}
-                    imageOnly
-                  />
-                  {/* 放大提示 */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                    <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-80 transition-opacity" />
-                  </div>
+                  {/* 原本在右边的卡往左移出 */}
+                  <motion.div
+                    key="right-out"
+                    className="absolute inset-0 rounded-xl overflow-hidden shadow-[0_0_25px_rgba(251,191,36,0.3)]"
+                    initial={{ x: 0, opacity: 1 }}
+                    animate={{ x: -200, opacity: 0 }}
+                    transition={{ duration: 0.6, ease: 'easeInOut' }}
+                  >
+                    {rightCard && (
+                      <CompositeCard
+                        word={rightCard.word}
+                        imageUrl={rightCard.imageUrl}
+                        imageOnly
+                      />
+                    )}
+                  </motion.div>
+                  {/* 原本在左边的卡移进来 */}
+                  <motion.div
+                    key="left-in"
+                    className="absolute inset-0 rounded-xl overflow-hidden shadow-[0_0_25px_rgba(251,191,36,0.3)]"
+                    initial={{ x: 200, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ duration: 0.6, ease: 'easeInOut', delay: 0.5 }}
+                  >
+                    {leftCard && (
+                      <CompositeCard
+                        word={leftCard.word}
+                        imageUrl={leftCard.imageUrl}
+                        imageOnly
+                      />
+                    )}
+                  </motion.div>
                 </>
+              ) : (
+                // 正常显示
+                <motion.div
+                  key="right-normal"
+                  className="absolute inset-0 rounded-xl overflow-hidden shadow-[0_0_25px_rgba(251,191,36,0.3)] cursor-pointer group"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  onClick={() => rightCard && setPreviewCard(rightCard)}
+                >
+                  {rightCard && (
+                    <>
+                      <CompositeCard
+                        word={rightCard.word}
+                        imageUrl={rightCard.imageUrl}
+                        imageOnly
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                        <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-80 transition-opacity" />
+                      </div>
+                    </>
+                  )}
+                </motion.div>
               )}
-            </motion.div>
+            </AnimatePresence>
           </div>
         </div>
       </div>
@@ -897,7 +1189,7 @@ export default function FlipPlayPage() {
             >
               <div className="text-center mb-4">
                 <h2 className="text-[#c9a959] text-lg font-serif mb-2">选择卡组</h2>
-                <p className="text-[#8b8b9e] text-sm">系统将随机抽取2张卡牌</p>
+                <p className="text-[#8b8b9e] text-sm">系统将抽取多张卡牌供你选择</p>
               </div>
               
               <div className="flex flex-col gap-4 w-full max-w-xs">
@@ -909,7 +1201,7 @@ export default function FlipPlayPage() {
                     <span className="text-2xl">🎴</span>
                     <div>
                       <p className="text-[#edf2f4] font-medium">经典卡牌</p>
-                      <p className="text-[#8b8b9e] text-xs">88张原版OH卡，即时加载</p>
+                      <p className="text-[#8b8b9e] text-xs">5张中选2张，即时加载</p>
                     </div>
                   </div>
                 </button>
@@ -922,7 +1214,7 @@ export default function FlipPlayPage() {
                     <span className="text-2xl">✨</span>
                     <div>
                       <p className="text-[#edf2f4] font-medium">AI 随机生成</p>
-                      <p className="text-[#8b8b9e] text-xs">独一无二的画面，需等待</p>
+                      <p className="text-[#8b8b9e] text-xs">3张中选2张，需等待生成</p>
                     </div>
                   </div>
                 </button>
@@ -947,6 +1239,24 @@ export default function FlipPlayPage() {
               <p className="text-[#8b8b9e] text-sm">
                 {deckSource === 'classic' ? '正在抽取卡牌...' : '正在生成卡牌...'}
               </p>
+              {deckSource === 'ai' && cards.length > 0 && (
+                <p className="text-[#c9a959] text-xs">
+                  已生成 {cards.length}/3 张
+                </p>
+              )}
+            </motion.div>
+          )}
+
+          {/* 选择阶段 - 点击选择 */}
+          {stage === 'selecting' && (
+            <motion.div
+              key="selecting"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col items-center justify-center overflow-auto"
+            >
+              {renderSelectingCards()}
             </motion.div>
           )}
 

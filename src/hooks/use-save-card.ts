@@ -141,26 +141,30 @@ async function generateFallbackImage(element: HTMLElement): Promise<string | nul
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
 
-    // 设置画布尺寸
-    canvas.width = 400;
-    canvas.height = 600;
+    // 设置画布尺寸 (2x 高清)
+    const scale = 2;
+    const W = 400;
+    const H = 600;
+    canvas.width = W * scale;
+    canvas.height = H * scale;
+    ctx.scale(scale, scale);
 
     // 绘制背景
-    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    const gradient = ctx.createLinearGradient(0, 0, 0, H);
     gradient.addColorStop(0, '#1a1a2e');
     gradient.addColorStop(1, '#0f0f23');
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, W, H);
 
     // 绘制标题
     ctx.fillStyle = '#c9a959';
     ctx.font = 'bold 24px serif';
     ctx.textAlign = 'center';
-    ctx.fillText('舒服 VS. 不舒服', canvas.width / 2, 40);
+    ctx.fillText('舒服 VS. 不舒服', W / 2, 40);
 
     ctx.fillStyle = '#8b8b9e';
     ctx.font = '12px sans-serif';
-    ctx.fillText('一体两面的洞见', canvas.width / 2, 60);
+    ctx.fillText('一体两面的洞见', W / 2, 60);
 
     // 查找图片元素并绘制
     const images = element.querySelectorAll('img');
@@ -209,7 +213,7 @@ async function generateFallbackImage(element: HTMLElement): Promise<string | nul
     ctx.fillStyle = '#8b8b9e';
     ctx.font = '10px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`Om Card · ${new Date().toLocaleDateString('zh-CN')}`, canvas.width / 2, canvas.height - 20);
+    ctx.fillText(`Om Card · ${new Date().toLocaleDateString('zh-CN')}`, W / 2, H - 20);
 
     return canvas.toDataURL('image/png', 1);
   } catch (err) {

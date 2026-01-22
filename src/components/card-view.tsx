@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CompositeCard } from './composite-card';
 import type { WordCard } from '@/types';
@@ -29,10 +29,14 @@ interface CardViewV2Props {
 /**
  * V1.1 卡牌展示组件
  * 使用 CompositeCard 实现图文分离的视觉效果
+ * 支持滚轮和双指缩放
  */
 export function CardViewV2({ word, imageUrl, isLoading, onClose }: CardViewV2Props) {
   // 加载文案轮播
   const [messageIndex, setMessageIndex] = useState(0);
+  // 缩放状态
+  const [scale, setScale] = useState(1);
+  const lastTouchDistance = useRef<number | null>(null);
   
   useEffect(() => {
     if (!isLoading) {
@@ -51,8 +55,48 @@ export function CardViewV2({ word, imageUrl, isLoading, onClose }: CardViewV2Pro
     return () => clearInterval(interval);
   }, [isLoading]);
 
+  // 重置缩放
+  useEffect(() => {
+    if (!word || !imageUrl) {
+      setScale(1);
+    }
+  }, [word, imageUrl]);
+
+  // 滚轮缩放
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (isLoading) return;
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    setScale(prev => Math.min(Math.max(prev + delta, 0.5), 3));
+  }, [isLoading]);
+
+  // 双指缩放
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (isLoading) return;
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const distance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+      
+      if (lastTouchDistance.current !== null) {
+        const delta = (distance - lastTouchDistance.current) * 0.01;
+        setScale(prev => Math.min(Math.max(prev + delta, 0.5), 3));
+      }
+      lastTouchDistance.current = distance;
+    }
+  }, [isLoading]);
+
+  const handleTouchEnd = useCallback(() => {
+    lastTouchDistance.current = null;
+  }, []);
+
   // 判断是否显示
   const shouldShow = isLoading || (word && imageUrl);
+  const canZoom = word && imageUrl && !isLoading;
 
   return (
     <AnimatePresence mode="wait">
@@ -61,12 +105,15 @@ export function CardViewV2({ word, imageUrl, isLoading, onClose }: CardViewV2Pro
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4"
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 overflow-hidden"
           onClick={onClose}
+          onWheel={handleWheel}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           <motion.div
             initial={{ scale: 0.8, rotateY: 90, opacity: 0 }}
-            animate={{ scale: 1, rotateY: 0, opacity: 1 }}
+            animate={{ scale: canZoom ? scale : 1, rotateY: 0, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0 }}
             transition={{ 
               type: "spring", 
@@ -75,7 +122,7 @@ export function CardViewV2({ word, imageUrl, isLoading, onClose }: CardViewV2Pro
               duration: 0.6 
             }}
             onClick={(e) => e.stopPropagation()}
-            style={{ perspective: '1000px' }}
+            style={{ perspective: '1000px', touchAction: 'none' }}
             className="w-full max-w-[320px]"
           >
             {isLoading && !word ? (
@@ -121,7 +168,7 @@ export function CardViewV2({ word, imageUrl, isLoading, onClose }: CardViewV2Pro
           </motion.div>
 
           {/* 底部文字描述 */}
-          {word && imageUrl && !isLoading && (
+          {canZoom && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -138,15 +185,20 @@ export function CardViewV2({ word, imageUrl, isLoading, onClose }: CardViewV2Pro
           )}
 
           {/* 点击提示 */}
-          {word && imageUrl && !isLoading && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="absolute bottom-8 text-[#8b8b9e] text-xs"
-            >
-              点击空白处继续
-            </motion.p>
+          {canZoom && (
+            <div className="absolute bottom-6 left-0 right-0 text-center">
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="text-[#8b8b9e] text-xs"
+              >
+                滚轮/双指缩放 · 点击空白处继续
+              </motion.p>
+              <p className="text-[#8b8b9e]/60 text-xs mt-1">
+                {Math.round(scale * 100)}%
+              </p>
+            </div>
           )}
         </motion.div>
       )}

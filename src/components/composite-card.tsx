@@ -43,7 +43,7 @@ export function CompositeCard({
       <div 
         className={`
           relative aspect-[3/4] w-full max-w-[320px]
-          rounded-2xl overflow-hidden
+          rounded-lg overflow-hidden
           shadow-[0_4px_20px_rgba(0,0,0,0.2)]
           ${className}
         `}
@@ -67,7 +67,7 @@ export function CompositeCard({
               src={imageUrl}
               alt="Card image"
               fill
-              className="object-cover"
+              className="object-contain bg-[#1a1a2e]"
               priority
               unoptimized={imageUrl.startsWith('data:')}
             />
